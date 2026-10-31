@@ -55,8 +55,10 @@ def render(size, background=False, round_icon=False):
     def xy(x, y):
         return x*n/108, y*n/108
     for start, end in [(185, 270), (5, 90)]:
-        curve = [xy(*point(start + (end-start)*i/160)) for i in range(161)]
-        draw.line(curve, fill=MINT, width=round(5*n/108), joint="curve")
+        angles = [math.radians(start + (end-start)*i/160) for i in range(161)]
+        outer = [xy(54+25.5*math.cos(a), 54+25.5*math.sin(a)) for a in angles]
+        inner = [xy(54+20.5*math.cos(a), 54+20.5*math.sin(a)) for a in reversed(angles)]
+        draw.polygon(outer + inner, fill=MINT)
         for a in (start, end):
             x, y = point(a)
             draw.ellipse((*xy(x-2.5, y-2.5), *xy(x+2.5, y+2.5)), fill=MINT)
