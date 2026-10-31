@@ -686,13 +686,66 @@ public class OpenTagViewerDatabaseMigrationTest {
     }
 
     /**
+     * The profile store starts empty, so an upgrade classifies every retained AirTag as
+     * unassigned without rewriting the tag, its settings or its location history.
+     */
+    @Test
+    public void migrate10To11_preservesExistingDataAndStartsUnassigned() throws IOException {
+        try (SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, 10)) {
+            insertImport(db, 1L);
+            insertOwnedBeaconV5(db, BEACON_ID, 1L, BEACON_PLIST, false);
+            db.execSQL("UPDATE OwnedBeacons SET from_account = 1 WHERE id = ?", new Object[]{BEACON_ID});
+            insertLocationReport(db, "hash-1", BEACON_ID, 1700000000000L);
+            insertUserBeaconOptions(db, BEACON_ID, "Backpack", "\uD83C\uDF92");
+        }
+
+        SupportSQLiteDatabase db = helper.runMigrationsAndValidate(
+                TEST_DB, 11, true, OpenTagViewerDatabase.MIGRATION_10_11);
+
+        try (Cursor cursor = db.query(
+                "SELECT content, from_account FROM OwnedBeacons WHERE id = ?",
+                new Object[]{BEACON_ID})) {
+            assertTrue("the AirTag did not survive the profile-store migration", cursor.moveToFirst());
+            assertEquals(BEACON_PLIST, cursor.getString(0));
+            assertEquals("account ownership was rewritten", 1, cursor.getInt(1));
+        }
+        try (Cursor cursor = db.query(
+                "SELECT COUNT(*) FROM LocationReport WHERE beacon_id = ?",
+                new Object[]{BEACON_ID})) {
+            assertTrue(cursor.moveToFirst());
+            assertEquals("saved reports were touched by an unrelated migration", 1, cursor.getInt(0));
+        }
+        try (Cursor cursor = db.query(
+                "SELECT ui_name FROM UserBeaconOptions WHERE beacon_id = ?",
+                new Object[]{BEACON_ID})) {
+            assertTrue(cursor.moveToFirst());
+            assertEquals("Backpack", cursor.getString(0));
+        }
+        try (Cursor cursor = db.query("SELECT COUNT(*) FROM FamilyProfile")) {
+            assertTrue(cursor.moveToFirst());
+            assertEquals("an upgrade must not fabricate people", 0, cursor.getInt(0));
+        }
+        try (Cursor cursor = db.query(
+                "SELECT beacon.id FROM OwnedBeacons AS beacon"
+                        + " WHERE beacon.is_removed = 0"
+                        + " AND NOT EXISTS (SELECT 1 FROM AirTagProfileAssignment AS assignment"
+                        + " INNER JOIN FamilyProfile AS profile"
+                        + " ON profile.id = assignment.profile_id"
+                        + " WHERE assignment.beacon_id = beacon.id)")) {
+            assertTrue("the retained AirTag must start unassigned", cursor.moveToFirst());
+            assertEquals(BEACON_ID, cursor.getString(0));
+            assertFalse(cursor.moveToNext());
+        }
+    }
+
+    /**
      * The whole ladder, because users skip releases.
      *
      * <p>Somebody upgrading from the first version runs every migration in one go, and that path
      * is the one nothing else covers - each test above starts partway up.
      */
     @Test
-    public void migrate1To10_directUpgradePreservesEverything() throws IOException {
+    public void migrate1To11_directUpgradePreservesEverything() throws IOException {
         try (SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, 1)) {
             insertImport(db, 1L);
             insertOwnedBeaconV1(db, "beacon-a", 1L, BEACON_PLIST, false);
@@ -701,7 +754,7 @@ public class OpenTagViewerDatabaseMigrationTest {
         }
 
         SupportSQLiteDatabase db = helper.runMigrationsAndValidate(
-                TEST_DB, 10, true,
+                TEST_DB, 11, true,
                 OpenTagViewerDatabase.MIGRATION_1_2,
                 OpenTagViewerDatabase.MIGRATION_2_3,
                 OpenTagViewerDatabase.MIGRATION_3_4,
@@ -710,23 +763,28 @@ public class OpenTagViewerDatabaseMigrationTest {
                 OpenTagViewerDatabase.MIGRATION_6_7,
                 OpenTagViewerDatabase.MIGRATION_7_8,
                 OpenTagViewerDatabase.MIGRATION_8_9,
-                OpenTagViewerDatabase.MIGRATION_9_10);
+                OpenTagViewerDatabase.MIGRATION_9_10,
+                OpenTagViewerDatabase.MIGRATION_10_11);
 
         try (Cursor cursor = db.query("SELECT COUNT(*) FROM LocationReport")) {
             assertTrue(cursor.moveToFirst());
-            assertEquals("location history lost on a direct v1 to v10 upgrade", 1, cursor.getInt(0));
+            assertEquals("location history lost on a direct v1 to v11 upgrade", 1, cursor.getInt(0));
         }
 
         try (Cursor cursor = db.query(
                 "SELECT ui_name FROM UserBeaconOptions WHERE beacon_id = ?",
                 new Object[] {"beacon-a"})) {
-            assertTrue("the user's nickname did not survive nine migrations", cursor.moveToFirst());
+            assertTrue("the user's nickname did not survive ten migrations", cursor.moveToFirst());
             assertEquals("Wallet", cursor.getString(0));
         }
 
-        assertTrue("the ladder must end on the index v10 defines",
+        assertTrue("the ladder must retain the index v10 defines",
                 indexesOn(db, "LocationReport")
                         .contains("index_LocationReport_beacon_id_timestamp"));
+        try (Cursor cursor = db.query("SELECT COUNT(*) FROM FamilyProfile")) {
+            assertTrue(cursor.moveToFirst());
+            assertEquals("the oldest upgrade path must not fabricate profiles", 0, cursor.getInt(0));
+        }
     }
 
     /** Index names on a table, ignoring the ones SQLite makes for itself. */

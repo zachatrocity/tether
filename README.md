@@ -49,6 +49,11 @@ The name and icon express the intended family use. They do not broaden the upstr
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions and [branding/README.md](branding/README.md) for the Orbit artwork and reproducible asset generator. The source namespace stays upstream-compatible even though the installed package is `io.zachs.tether`.
 
+Family profiles are stored only in the app database. Profiles use user-chosen names and may
+group multiple existing AirTags; AirTags without a valid profile remain explicitly unassigned.
+Upgrading creates no people or associations and does not rewrite imported AirTags, account
+state, tag settings, or saved reports. Profile data is not synced or shared.
+
 The personal build workflow runs Python tests, JVM tests, and targeted Android emulator checks for login, native authentication-library loading, and installed branding. These are not a substitute for testing actual Apple account access and tag reports on your device.
 
 ## Upstream, credits, and licenses
