@@ -1067,3 +1067,28 @@ release is a bad time to discover one has expired.
   exported schema JSON — see rule 1 in [AGENTS.md](./AGENTS.md)
 - Say what you verified and what you could not. A change needing a real Apple account, a
   Mac, or hardware you do not have is fine; claiming coverage you do not have is not
+
+## Personal fork build (remote Mac authentication)
+
+This fork installs debug builds as `dev.wander.android.opentagviewer.zach`, labelled
+OpenTagViewer (Zach), alongside the official app. Keep the same local debug signing key
+for subsequent builds; never uninstall the official app to resolve a signing conflict.
+`-PndkVersion=27.1.12297006` optionally uses NDK r27b; the upstream default is unchanged.
+Google Maps requires a key bound to this package/signature; without one the existing
+OpenStreetMap fallback is used.
+
+The always-visible **Try a remote server** button on the account form reveals the server
+field without a failed Apple login. `RemoteMacAnisetteProvider` accepts the complete
+macOS13.1/22C65 profile emitted by the private helper, aligns routing, serial and device IDs,
+and persists the profile without OTPs. It rejects identity changes instead of silently moving
+a saved session to another machine. Legacy two-header servers retain their old identity.
+The server URL is configured on-device, never hardcoded into the APK.
+
+Regression coverage: `test_remote_mac.py` checks header identity, persisted state, malformed
+responses and server identity changes. `AppleLoginFallbackFlowTest#remoteServerCanBeChosenBeforeAnyFailedLogin`
+drives the button with a ready local provider. `RemoteServerButtonLayoutTest` inflates and
+renders it in light and dark themes. These tests do not prove a real Apple sign-in or location fetch.
+
+Includes Rob Lazzurs' upstream PR274 commits (preserved authorship) for optional on-device
+macOS CoreADI emulation, plus the 2FA409 and CloudKit UUID fixes. This is experimental;
+long-term Apple acceptance and real-account behavior require device validation.

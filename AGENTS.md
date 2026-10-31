@@ -1121,3 +1121,11 @@ Each of these has already produced a hang that looked like something else:
 - User-facing strings go in `values/strings.xml` with translations in every supported locale.
   **Use `scripts/add_strings.py` rather than editing the files by hand** — see below.
 - Prefer fixing the root cause to adding a workaround.
+
+## Personal fork remote-provider regression
+
+A ready static `EmulatedMacAnisette.adi` must not precede the explicit remote-mode check.
+Otherwise switching modes in the login flow keeps using the cached local machine. A remote
+Mac session carries `remote_mac_profile` in its saved anisette mapping; restore it with the
+remote provider and never run `_preferLocalAnisette` on that session. The saved device IDs,
+provider identity and routing must describe the same machine after restart.

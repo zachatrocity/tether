@@ -272,6 +272,8 @@
                     </LinearLayout>
                 </LinearLayout>
 
+                <include layout="@layout/login_remote_server_button" />
+
             </LinearLayout>
 
             <!--

@@ -279,6 +279,8 @@ public class AppleLoginActivity extends AppCompatActivity {
 
         this.findViewById(R.id.login_error_export_logs)
                 .setOnClickListener(v -> this.openTheReportPageForTheLoginFailure());
+        this.findViewById(R.id.login_choose_remote_server)
+                .setOnClickListener(v -> this.onClickTryRemoteAnisette());
         this.findViewById(R.id.login_error_try_remote_anisette)
                 .setOnClickListener(v -> this.onClickTryRemoteAnisette());
 

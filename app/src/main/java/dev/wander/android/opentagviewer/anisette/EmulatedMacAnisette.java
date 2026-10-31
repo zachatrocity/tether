@@ -73,14 +73,15 @@ public final class EmulatedMacAnisette implements AnisetteSource {
     @Override
     public boolean ensureReady() {
         synchronized (LOCK) {
-            if (adi != null) {
-                return true;
-            }
+            // A cached emulator must not override an explicit switch to a remote server.
             if (!this.settings.usesLocalAnisette(this.hasExistingSession)) {
                 this.unavailableReason = "a remote Anisette server is selected in Settings";
                 return false;
             }
 
+            if (adi != null) {
+                return true;
+            }
             MacCoreAdi opened = null;
             try {
                 final byte[] library = MacCoreAdiFetcher.ensure(

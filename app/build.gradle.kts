@@ -169,7 +169,7 @@ android {
     // Pinned so the toolchain does not depend on whichever NDK a given machine happens to
     // have installed. Note r27 does not align to 16 KB pages on its own - the linker flag in
     // defaultConfig.externalNativeBuild does that. See #47.
-    ndkVersion = "27.0.12077973"
+    ndkVersion = providers.gradleProperty("ndkVersion").getOrElse("27.0.12077973")
 
     // Makes the exported schemas readable by instrumented tests at runtime, which is
     // how MigrationTestHelper creates a v1 database to run MIGRATION_1_2 against.
@@ -253,8 +253,8 @@ android {
             // Note: a Maps API key restricted to the release package name will not authorise
             // this one. Add "dev.wander.android.opentagviewer.debug" (with the debug keystore
             // SHA-1) to the key's restrictions if you need maps to render in debug builds.
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            applicationIdSuffix = ".zach"
+            versionNameSuffix = "-zach.1"
 
             // **`-debug` says this is not a release; it does not say which build.**
             // `versionName` is a committed literal, so every commit after 1.0.5 reports 1.0.5
@@ -269,7 +269,7 @@ android {
 
             // Distinct launcher name, otherwise a debug install sits next to a real one
             // with an identical icon and label and there is no way to tell them apart.
-            manifestPlaceholders["appLabel"] = "OpenTagViewer (debug)"
+            manifestPlaceholders["appLabel"] = "OpenTagViewer (Zach)"
         }
     }
     compileOptions {

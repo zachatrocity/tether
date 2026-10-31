@@ -14,7 +14,6 @@ from findmy.errors import AppleServiceUnavailableError, GrandSlamRefusedError
 from findmy.accessory import FixedRollingKeyPairAccessory
 from findmy.keys import KeyPairType
 from findmy.reports import (
-    RemoteAnisetteProvider,
     AppleAccount,
     LoginState,
     SmsSecondFactorMethod,
@@ -31,6 +30,7 @@ from findmy.reports.twofactor import (
 )
 
 import identity as app_identity
+from remote_mac import RemoteMacAnisetteProvider
 
 
 class TwoFactorMethods(Enum):
@@ -305,7 +305,7 @@ def _anisetteProvider(anisetteServerUrl: str, localAnisette: Any = None, **ident
 
     # Passed here rather than through identityKwargs, which also reach LocalAnisetteProvider -
     # BaseAnisetteProvider takes no timeout, and there is no HTTP in the local one to spend it on.
-    return RemoteAnisetteProvider(
+    return RemoteMacAnisetteProvider(
         anisetteServerUrl, timeout=LOGIN_TIMEOUT_SECONDS, **identityKwargs)
 
 
@@ -340,6 +340,12 @@ def loginSync(email: str, password: str, anisetteServerUrl: str,
             timeout=LOGIN_TIMEOUT_SECONDS,
             **app_identity.deviceIdsForNewSession(localAnisette),
         )
+        if isinstance(anisette, RemoteMacAnisetteProvider):
+            acc._evt_loop.run_until_complete(anisette.prepare())
+            if anisette.mac_profile:
+                acc._asyncacc._uid = anisette.mac_profile["uid"]
+                acc._asyncacc._devid = anisette.mac_profile["devid"]
+
         _treatHsc409AsSecondFactor(acc)
 
         state = acc.login(email, password)
@@ -892,8 +898,12 @@ def getAccount(
 
         data = json.loads(serializedAccountData)
 
-        acc = AppleAccount.from_json(data)
-        _preferLocalAnisette(acc, localAnisette)
+        if data.get("anisette", {}).get("remote_mac_profile"):
+            provider = RemoteMacAnisetteProvider.from_saved(data["anisette"])
+            acc = AppleAccount(provider, state_info=data)
+        else:
+            acc = AppleAccount.from_json(data)
+            _preferLocalAnisette(acc, localAnisette)
         # A restored session re-authenticates on its own after a 401, through the same exchange.
         _treatHsc409AsSecondFactor(acc)
 

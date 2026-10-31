@@ -120,6 +120,21 @@ public class AppleLoginFallbackFlowTest {
         onView(withId(R.id.anisetteLoginFallbackReason)).perform(scrollTo()).check(matches(isDisplayed()));
     }
 
+    @Test
+    public void remoteServerCanBeChosenBeforeAnyFailedLogin() {
+        AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
+        launch();
+        Eventually.check(() -> onView(withId(R.id.login_choose_remote_server))
+                .perform(scrollTo()).check(matches(isDisplayed())));
+        onView(withId(R.id.login_choose_remote_server)).perform(click());
+        Eventually.check(() -> onView(withId(R.id.anisetteRemoteSection))
+                .perform(scrollTo()).check(matches(isDisplayed())));
+        Eventually.check(() -> onView(withId(R.id.go_to_maininfo)).perform(scrollTo(), click()));
+        signIn();
+        Eventually.check(() -> assertNotNull(apple.serverUrlUsed()));
+        assertTrue(server.calls() > 0);
+    }
+
     /** And having got it back, they can still sign in through it. */
     @Test
     public void theyCanStillSignInThroughAServer() {
