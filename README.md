@@ -1,122 +1,63 @@
-![opentagviewer_banner](https://github.com/user-attachments/assets/f26dfbc3-92d7-4af0-950f-e9446c7fb6b9)
+# Tether - Keep your children in orbit
 
-<h1>
-   <img src="./opentagviewer_icon_xs.png"/> OpenTagViewer
-</h1>
+**Tether is a personal fork of [OpenTagViewer](https://github.com/parawanderer/OpenTagViewer), geared towards tracking your kids using family-owned AirTags and other compatible Find My tags from Android.** It builds on the upstream project's work with a family-focused identity and a small set of authentication fixes; it is not an official OpenTagViewer release.
 
-[![Android build & tests](https://github.com/parawanderer/OpenTagViewer/actions/workflows/build-debug.yml/badge.svg?branch=main)](https://github.com/parawanderer/OpenTagViewer/actions/workflows/build-debug.yml)
-[![Exporter tests](https://github.com/parawanderer/OpenTagViewer/actions/workflows/macos-scripts-python.yml/badge.svg?branch=main)](https://github.com/parawanderer/OpenTagViewer/actions/workflows/macos-scripts-python.yml)
-[![Release](https://github.com/parawanderer/OpenTagViewer/actions/workflows/build-release.yml/badge.svg)](https://github.com/parawanderer/OpenTagViewer/actions/workflows/build-release.yml)
-[![Apple's ADI libraries](https://github.com/parawanderer/OpenTagViewer/actions/workflows/check-adi-libraries.yml/badge.svg)](https://github.com/parawanderer/OpenTagViewer/actions/workflows/check-adi-libraries.yml)
-[![Apple's sign-in edge](https://github.com/parawanderer/OpenTagViewer/actions/workflows/check-gsa-edge.yml/badge.svg)](https://github.com/parawanderer/OpenTagViewer/actions/workflows/check-gsa-edge.yml)
-[![Project Status: Inactive](https://www.repostatus.org/badges/latest/inactive.svg)](https://www.repostatus.org/#inactive)
+<p align="center">
+  <img src="branding/tether-orbit.png" width="180" alt="Tether Orbit icon: two mint companion dots and open arcs on deep teal" />
+</p>
 
+[![Android build and tests](https://github.com/zachatrocity/tether/actions/workflows/zach-apk.yml/badge.svg?branch=brand%2Ftether)](https://github.com/zachatrocity/tether/actions/workflows/zach-apk.yml)
 
-> [!NOTE]
-> This app is feature-complete as of app version `1.1.0` as far as the original author is concerned. Contributions are welcome and will be reviewed - get started through reading [CONTRIBUTING.md](./CONTRIBUTING.md) (and optionally having your agent read [AGENTS.md](./AGENTS.md)) which contain all details to get up and running.
+## What it does
 
+- View reported locations of compatible tags on Android, including tags attached to your children's backpacks or belongings.
+- Keep location history using the functionality inherited from OpenTagViewer.
+- Sign in using the patched Mac-compatible authentication flow, with an explicit remote-server option.
+- Use a distinct **Tether** app identity and **Orbit** icon, without replacing the upstream app.
 
-This is an **<img src="https://github.com/user-attachments/assets/aa0531f6-6a5e-4c9f-b3c4-dfc3899c8a49" width="20"/> Android App** to allow you to view/track your **<img src="https://github.com/user-attachments/assets/fa3b912f-d204-4252-9449-465eb62f128c" height="20"/> official Apple AirTags**. It was made because Apple does not make any official app or webpage that lets you do this.
-<br>
+Tether shows tag reports from the Find My network, not a continuous GPS feed from a child's phone. Reports can be delayed or unavailable; this rebrand does not add live child tracking, geofence alerts, or emergency monitoring.
 
-This project is a relatively polished looking Android/Java UI-wrapper around the Python [FindMy.py](https://github.com/malmeloo/FindMy.py) library, which is a derivative of the [openhaystack](https://github.com/seemoo-lab/openhaystack) project.
+## Install
 
-<br>
+Download the APK from [Tether releases](https://github.com/zachatrocity/tether/releases). Current builds are personal testing builds and may be marked as prereleases.
 
-> [!WARNING]
-> This project is not affiliated with Apple Inc. or Android/Google LLC in any capacity
+- **App name:** Tether
+- **Android package:** `io.zachs.tether`
+- **Install alongside:** OpenTagViewer and the earlier OpenTagViewer (Zach) test build
 
+A new package has separate app storage. Keep your working old installation until you have imported your tag export and signed into Tether. Your existing login and tag database are not transferred automatically.
 
-|Video Demo|Demo: ☀️ Light Mode|Demo: 🌑 Dark Mode|
-|----|----|----|
-| <video src="https://github.com/user-attachments/assets/d3857480-4ef0-48a9-ab63-8d8c15fd5314"> |![Demo of the app while using Light Mode](./light_mode_preview.jpg)|![Demo of the app while using Dark Mode](./dark_mode_preview.jpg)|
+### Obtainium
 
+Add `https://github.com/zachatrocity/tether` as a **new app** in Obtainium:
 
-(No, the location history in this demo isn't real)
+1. Enable **Include prereleases** for testing builds.
+2. Set the **release-title filter** to `^Tether` to exclude the earlier OpenTagViewer-branded release.
+3. Remove any old version-pinning filter from this new entry.
 
-## Features ⭐
+This repository is public; no GitHub token is required just to access its releases.
 
-- View current "live" location of your AirTags (or other FindMy devices) **on Android**
-- Track & (automatically) save historical location history of your AirTags (a feature notably missing from the iOS FindMy apps!)
-- UI customisation options
+## Setup and compatibility
 
+Tether uses the upstream tag formats and setup procedures. See the [OpenTagViewer wiki](https://github.com/parawanderer/OpenTagViewer/wiki) for exporting tags from macOS, supported trackers, and account setup. The desktop exporter is still OpenTagViewer's; Tether does not ship a renamed exporter.
 
-## What it works with 🏷️
+The login screen exposes **Try a remote server** before a failed sign-in. A remote Mac-compatible Anisette helper is optional infrastructure: configure your own endpoint rather than relying on a server embedded in this app. Machine identities matter to Apple sessions, so changing providers may require signing in again.
 
-**If it shows up under _Items_ in Apple's own Find My app, it works.**
+The name and icon express the intended family use. They do not broaden the upstream app's tracker compatibility or promise that every accessory works.
 
-| What | Works? | |
-| --- | --- | --- |
-| **AirTag** | ✅ | What most people are here for |
-| **Third-party trackers that work with Apple Find My** (Chipolo, Pebblebee, Mili MiTag, eufy and similar) | ✅ | Should work; [reports welcome](https://github.com/parawanderer/OpenTagViewer/issues) |
-| **AirPods, and other Find My accessories** | ✅ | Works where Apple stores a usable key for it. Lightly tested |
-| **Self-made tags** ([OpenHaystack](https://github.com/seemoo-lab/openhaystack), [Macless Haystack](https://github.com/dchristl/macless-haystack)) | ✅ | Works; requires creating an export by [CLI](https://github.com/parawanderer/OpenTagViewer/wiki/How-To:-Export-AirTags-With-The-CLI) or [Wizard](https://github.com/parawanderer/OpenTagViewer/wiki/How-To:-Export-AirTags) |
-| **Your own iPhone, iPad or Mac** | ⚠️ | Partial coverage (see issue [#131](https://github.com/parawanderer/OpenTagViewer/issues/131)) |
-| **A tag someone shared with you** through Apple's own sharing | ❌ | Only the account that *owns* a tag can export it. Ask the owner to export it and send you the zip |
-| **Google Find Hub trackers** | 🧪 | Experimental. Needs a self-hosted service, see the [setup guide](https://github.com/parawanderer/OpenTagViewer/wiki/%5BGoogle%5D-How-To:-Find-Hub-Trackers). An on-device version is [#257](https://github.com/parawanderer/OpenTagViewer/issues/257) |
-| **Tile, Samsung SmartTag** | ❌ | Different networks entirely, with nothing in common with Apple's. |
+## Development
 
-> [!NOTE]
-> This app (currently) reads Apple's Find My network. Anything not on that network cannot be tracked with it, no matter how similar the device looks.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions and [branding/README.md](branding/README.md) for the Orbit artwork and reproducible asset generator. The source namespace stays upstream-compatible even though the installed package is `io.zachs.tether`.
 
+The personal build workflow runs Python tests, JVM tests, and targeted Android emulator checks for login, native authentication-library loading, and installed branding. These are not a substitute for testing actual Apple account access and tag reports on your device.
 
-## How To Use 📖
+## Upstream, credits, and licenses
 
-### Requirements 🤓
+Tether is based on **[OpenTagViewer by parawanderer and contributors](https://github.com/parawanderer/OpenTagViewer)**. The Mac-emulation authentication work incorporates **[Rob Lazzurs' upstream PR #274](https://github.com/parawanderer/OpenTagViewer/pull/274)**. Additional personal-fork changes expose remote-server selection and preserve remote Mac identity across authentication and session restoration.
 
-1. An Android phone with [the `OpenTagViewer` app installed](https://github.com/parawanderer/OpenTagViewer/wiki/How-To:-Install-App)
-2. A (free) [Apple Account](https://account.apple.com/) with 2FA enabled to be via either `SMS` or `Trusted Device`
-3. One or more of:
-   1. **AirTags**;
-   2. Any other "FindMy-compatible Accessory" or tracker that appears under *Items* in Apple's `FindMy` app
-   3. [OpenHaystack](https://github.com/seemoo-lab/openhaystack)-like custom devices (see [what it works with](#what-it-works-with-))
+- OpenTagViewer's original **MIT license and copyright notice** are retained in [LICENSE.TXT](LICENSE.TXT).
+- Third-party attribution remains in [NOTICE](NOTICE), including the Apache-2.0-derived AirGuard portions.
+- The native Mac-emulation component uses **[Unicorn 2.1.4 (GPLv2)](https://github.com/unicorn-engine/unicorn/tree/2.1.4)**. The APK is **not represented as MIT-only**; the branding change does not change its dependency licenses.
+- Apple's CoreADI is downloaded and hash-checked at runtime, not bundled in the APK.
 
-**And then one of two routes**:
-1. Read them from iCloud, in the app (requires only your Android phone)
-2. Export a zip on a computer, import it (requires a computer once during export)
-
-👉 [Which route should I use?](https://github.com/parawanderer/OpenTagViewer/wiki/How-To:-Get-AirTags-into-App)
-
-
-### How to view my AirTag on my Android Phone?!
-
-See [📖 wiki](https://github.com/parawanderer/OpenTagViewer/wiki) for more details:
-
-1. [Install the app](https://github.com/parawanderer/OpenTagViewer/wiki/How-To:-Install-App) and log in to your Apple Account, and either (or both):
-   1. Use the **iCloud login method** (when you are the owner of official FindMy-compatible devices that show up in the official FindMy app):
-      1. Follow the steps [here](https://github.com/parawanderer/OpenTagViewer/wiki/How-To:-Connect-Your-iCloud-Account) explaining how to link your account
-   2. Use the **zip method**:
-      1. Create an export `.zip` file by following [this wiki guide](https://github.com/parawanderer/OpenTagViewer/wiki/How-To:-Export-AirTags#the-export-wizard--recommended)
-      2. Import the `.zip` file in the app
-2. Profit: you can now track your AirTags on your Android Phone indefinitely!
-
--------------
-
-## Contributing
-
-This started as a "hackathony" thing thrown together ASAP and made presentable for layusers, and plenty can still be improved. Contributions/MRs are more than welcome.
-
-To get started with the repo, see:
-
-📋 **[CONTRIBUTING.md](./CONTRIBUTING.md)**: covers getting set up (the JDK, the SDK, the Maps API key, the git hook) and how to run every test suite, as well as the CI setup.
-
-📐 **[AGENTS.md](./AGENTS.md)**: the rules a change has to satisfy migrations, Anisette, API keys, attribution. Written for automated contributors, but contains useful information for people too (best queried via a coding assistant rather than read directly).
-
-### Bluetooth and hardware
-
-The app works without these, but they are the open questions for anyone with a tag and a Bluetooth sniffer:
-
-- [#201](https://github.com/parawanderer/OpenTagViewer/issues/201): playing a sound on a tag that is still near its owner
-- [#166](https://github.com/parawanderer/OpenTagViewer/issues/166): registering an AirTag without an iPhone or iPad
-
-What is known so far is collected in [docs/owner-connected-tags.md](./docs/owner-connected-tags.md), and everything on the topic is labelled [`@hardware`](https://github.com/parawanderer/OpenTagViewer/issues?q=label%3A%40hardware).
-
-### Credits
-
-- [UI Icons](https://fonts.google.com/icons?icon.query=warn&icon.set=Material+Icons) by Google
-- [Material theme 3 library](https://github.com/material-components/material-components-android) + [colours](http://material-foundation.github.io?primary=%23F4FEFF&bodyFont=Nunito&displayFont=Nunito+Sans&colorMatch=false) by Google
-
-
-### License: MIT
-
-Do with it whatever you like, I don't really care :P
+This is a personal project, not affiliated with Apple, Google, or an official OpenTagViewer release. Report fork-specific problems in [this repository's issues](https://github.com/zachatrocity/tether/issues).
