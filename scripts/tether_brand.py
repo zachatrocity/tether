@@ -55,7 +55,8 @@ def render(size, background=False, round_icon=False):
     def xy(x, y):
         return x*n/108, y*n/108
     for start, end in [(185, 270), (5, 90)]:
-        draw.arc((*xy(31, 31), *xy(77, 77)), start, end, fill=MINT, width=round(5*n/108))
+        curve = [xy(*point(start + (end-start)*i/160)) for i in range(161)]
+        draw.line(curve, fill=MINT, width=round(5*n/108), joint="curve")
         for a in (start, end):
             x, y = point(a)
             draw.ellipse((*xy(x-2.5, y-2.5), *xy(x+2.5, y+2.5)), fill=MINT)
