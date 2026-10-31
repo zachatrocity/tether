@@ -14,6 +14,7 @@
 - Keep location history using the functionality inherited from OpenTagViewer.
 - Sign in using the patched Mac-compatible authentication flow, with an explicit remote-server option.
 - Use a distinct **Tether** app identity and **Orbit** icon, without replacing the upstream app.
+- Configure and test an optional self-hosted ntfy endpoint for future AirTag alerts.
 
 Tether shows tag reports from the Find My network, not a continuous GPS feed from a child's phone. Reports can be delayed or unavailable; this rebrand does not add live child tracking, geofence alerts, or emergency monitoring.
 
@@ -42,6 +43,21 @@ This repository is public; no GitHub token is required just to access its releas
 Tether uses the upstream tag formats and setup procedures. See the [OpenTagViewer wiki](https://github.com/parawanderer/OpenTagViewer/wiki) for exporting tags from macOS, supported trackers, and account setup. The desktop exporter is still OpenTagViewer's; Tether does not ship a renamed exporter.
 
 The login screen exposes **Try a remote server** before a failed sign-in. A remote Mac-compatible Anisette helper is optional infrastructure: configure your own endpoint rather than relying on a server embedded in this app. Machine identities matter to Apple sessions, so changing providers may require signing in again.
+
+### Optional ntfy endpoint
+
+Open **Settings → AirTag notifications** to configure a self-hosted ntfy server, topic,
+and optional access token. The server address may include a reverse-proxy path. Delivery is
+off by default; use **Send test notification** before enabling it.
+
+The access token is encrypted with a dedicated key in Android Keystore and is not shown again
+after it is saved. HTTPS protects the token and notification in transit. LAN HTTP endpoints are
+allowed for self-hosting, but the Settings screen warns that both values travel unencrypted.
+Test notifications contain only generic Tether setup text.
+
+This configuration slice does not yet connect left-behind events to ntfy. It stores and tests
+the endpoint without adding a retry queue, cloud account, or background network request while
+delivery is disabled or incomplete.
 
 The name and icon express the intended family use. They do not broaden the upstream app's tracker compatibility or promise that every accessory works.
 

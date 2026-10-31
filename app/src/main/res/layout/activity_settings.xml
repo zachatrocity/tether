@@ -9,6 +9,7 @@
         <variable name="onClickFetchFromAccount" type="Runnable" />
         <variable name="onClickUnlinkAccount" type="Runnable" />
         <variable name="onClickExtraSources" type="Runnable" />
+        <variable name="onClickNtfy" type="Runnable" />
         <variable name="fetchFromAccountSubtitle" type="String" />
         <variable name="onClickTheme" type="Runnable" />
         <variable name="currentTheme" type="String" />
@@ -428,6 +429,15 @@
                     android:textSize="13sp"
                     tools:text="Default alarm sound" />
             </LinearLayout>
+
+            <!-- Optional self-hosted delivery for the AirTag left-behind settings above. -->
+            <include
+                android:id="@+id/settings_ntfy"
+                layout="@layout/settings_item_clickable"
+                app:icon="@{@drawable/host_24px}"
+                app:onClick="@{onClickNtfy}"
+                app:sectionSubtitle="@{@string/ntfy_settings_subtitle}"
+                app:title="@{@string/ntfy_settings_row_title}" />
 
             <com.google.android.material.divider.MaterialDivider
                 android:layout_width="match_parent"

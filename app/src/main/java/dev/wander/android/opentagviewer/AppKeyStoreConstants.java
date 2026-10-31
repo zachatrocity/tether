@@ -18,4 +18,7 @@ public final class AppKeyStoreConstants {
 
     /** The Google Find Hub service's API token and HTTP password - see ExtraSourcesSettings. */
     public static final String KEYSTORE_ALIAS_EXTRA_SOURCES = "extra_sources";
+
+    /** The optional ntfy access token; independent from Apple and tracker-source credentials. */
+    public static final String KEYSTORE_ALIAS_NTFY = "ntfy";
 }
