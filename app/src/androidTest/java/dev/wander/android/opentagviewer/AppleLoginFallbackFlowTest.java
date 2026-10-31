@@ -16,6 +16,7 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -122,7 +123,8 @@ public class AppleLoginFallbackFlowTest {
 
     @Test
     public void remoteServerCanBeChosenBeforeAnyFailedLogin() {
-        AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
+        AppDependencies.replaceAnisette(settings -> settings.usesLocalAnisette(false)
+                ? FakeAnisetteSource.ready() : FakeAnisetteSource.unavailable("remote selected"));
         launch();
         Eventually.check(() -> onView(withId(R.id.login_choose_remote_server))
                 .perform(scrollTo()).check(matches(isDisplayed())));
@@ -133,6 +135,7 @@ public class AppleLoginFallbackFlowTest {
         signIn();
         Eventually.check(() -> assertNotNull(apple.serverUrlUsed()));
         assertTrue(server.calls() > 0);
+        assertFalse("the local provider must not override the selected server", apple.anisetteUsed().ensureReady());
     }
 
     /** And having got it back, they can still sign in through it. */

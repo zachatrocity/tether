@@ -1092,3 +1092,7 @@ renders it in light and dark themes. These tests do not prove a real Apple sign-
 Includes Rob Lazzurs' upstream PR274 commits (preserved authorship) for optional on-device
 macOS CoreADI emulation, plus the 2FA409 and CloudKit UUID fixes. This is experimental;
 long-term Apple acceptance and real-account behavior require device validation.
+
+`MacCoreAdiLoadTest` exercises the JNI library on Android with Apple's hash-checked
+CoreADI download, expecting an unprovisioned machine. It performs no provisioning or
+account login and uses only a cache file, not the app's persistent machine store.
