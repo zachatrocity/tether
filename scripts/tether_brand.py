@@ -85,3 +85,4 @@ if __name__ == '__main__':
     out = ROOT / 'branding'
     out.mkdir(exist_ok=True)
     render(512, True).save(out / 'tether-orbit.png')
+    render(512, True).save(ROOT / 'app/src/main/ic_launcher-playstore.png')

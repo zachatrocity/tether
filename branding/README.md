@@ -16,3 +16,7 @@ ID creates a separate installation: keep the working old app until tags are impo
 the new app has been signed in. The existing personal-fork signing key remains unchanged.
 
 This Android-only release does not rename or republish the upstream desktop exporter.
+
+Debug builds deliberately inherit the main icon resources. The inherited debug source-set
+background override turned the first Tether build magenta; TetherBrandingTest caught it
+on the emulator. Do not restore those overrides without updating the branding contract.
