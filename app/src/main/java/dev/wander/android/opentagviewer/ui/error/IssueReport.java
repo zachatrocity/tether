@@ -37,6 +37,6 @@ public final class IssueReport {
      * somebody discover it after writing everything out.
      */
     public static final String NEW_APP_BUG =
-            "https://github.com/parawanderer/OpenTagViewer/issues/new?template=" + TEMPLATE;
+            "https://github.com/zachatrocity/OpenTagViewer/issues/new?template=" + TEMPLATE;
 
 }

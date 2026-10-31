@@ -1070,8 +1070,8 @@ release is a bad time to discover one has expired.
 
 ## Personal fork build (remote Mac authentication)
 
-This fork installs debug builds as `dev.wander.android.opentagviewer.zach`, labelled
-OpenTagViewer (Zach), alongside the official app. Keep the same local debug signing key
+This fork installs debug builds as `io.zachs.tether`, labelled
+Tether, alongside the official app. Keep the same local debug signing key
 for subsequent builds; never uninstall the official app to resolve a signing conflict.
 `-PndkVersion=27.1.12297006` optionally uses NDK r27b; the upstream default is unchanged.
 Google Maps requires a key bound to this package/signature; without one the existing

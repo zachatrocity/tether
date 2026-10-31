@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">OpenTagViewer</string>
+    <string name="app_name" translatable="false">Tether</string>
     <string name="nav_header_title">Android Studio</string>
     <string name="nav_header_subtitle" translatable="false">android.studio@android.com</string>
     <string name="nav_header_desc">Navigation header</string>

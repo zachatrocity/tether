@@ -1,7 +1,7 @@
-name: Zach APK
+name: Tether APK
 on:
   push:
-    branches: [fix/remote-mac-anisette]
+    branches: [fix/remote-mac-anisette, brand/tether]
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,7 +39,7 @@ jobs:
       - name: Login UI and native runtime tests
         run: >-
           ./gradlew :app:testEmulatorDebugAndroidTest --console=plain
-          -Pandroid.testInstrumentationRunnerArguments.class=dev.wander.android.opentagviewer.AppleLoginFallbackFlowTest,dev.wander.android.opentagviewer.ui.RemoteServerButtonLayoutTest,dev.wander.android.opentagviewer.anisette.MacCoreAdiLoadTest
+          -Pandroid.testInstrumentationRunnerArguments.class=dev.wander.android.opentagviewer.AppleLoginFallbackFlowTest,dev.wander.android.opentagviewer.ui.RemoteServerButtonLayoutTest,dev.wander.android.opentagviewer.ui.TetherBrandingTest,dev.wander.android.opentagviewer.anisette.MacCoreAdiLoadTest
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -50,5 +50,5 @@ jobs:
             app/build/outputs/managed_device_android_test_additional_output/
       - uses: actions/upload-artifact@v4
         with:
-          name: OpenTagViewer-Zach
+          name: Tether
           path: app/build/outputs/apk/debug/*.apk

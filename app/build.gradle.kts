@@ -93,11 +93,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.wander.android.opentagviewer"
+        applicationId = "io.zachs.tether"
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.1.2"
+        versionCode = 7
+        versionName = "1.1.2-tether.1"
 
         // Null unless a build type sets it - see the debug block. A release is built from a tag
         // and its versionName is exactly right, so there is nothing a commit would add; the
@@ -243,18 +243,8 @@ android {
         debug {
             isDebuggable = true
 
-            // Install debug builds alongside a release install rather than colliding with
-            // it. Without this, both share the applicationId but are signed with different
-            // keys, so installing a debug build over a real one fails with
-            // INSTALL_FAILED_UPDATE_INCOMPATIBLE and the only way forward is to uninstall -
-            // which permanently destroys the user's imported beacons and location history.
-            // allowBackup is false, so there is no backup to restore from either.
-            //
-            // Note: a Maps API key restricted to the release package name will not authorise
-            // this one. Add "dev.wander.android.opentagviewer.debug" (with the debug keystore
-            // SHA-1) to the key's restrictions if you need maps to render in debug builds.
-            applicationIdSuffix = ".zach"
-            versionNameSuffix = "-zach.1"
+            // The personal Tether testing channel has its own permanent application ID.
+            // Keep it stable across builds so signed updates preserve app data.
 
             // **`-debug` says this is not a release; it does not say which build.**
             // `versionName` is a committed literal, so every commit after 1.0.5 reports 1.0.5
@@ -269,7 +259,7 @@ android {
 
             // Distinct launcher name, otherwise a debug install sits next to a real one
             // with an identical icon and label and there is no way to tell them apart.
-            manifestPlaceholders["appLabel"] = "OpenTagViewer (Zach)"
+            manifestPlaceholders["appLabel"] = "@string/app_name"
         }
     }
     compileOptions {
