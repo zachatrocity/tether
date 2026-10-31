@@ -1,6 +1,7 @@
 package dev.wander.android.opentagviewer.ui;
 
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+import static androidx.test.platform.app.InstrumentationRegistry.getArguments;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -51,7 +52,7 @@ public class TetherBrandingTest {
             logo.setBounds(216, 0, 432, 216);
             logo.draw(canvas);
             assertTrue(bitmap.getPixel(356, 76) != (night ? Color.BLACK : Color.WHITE));
-            String dir = getInstrumentation().getArguments().getString("additionalTestOutputDir");
+            String dir = getArguments().getString("additionalTestOutputDir");
             if (dir != null) {
                 try (FileOutputStream out = new FileOutputStream(new File(dir, "tether-" + (night ? "dark" : "light") + ".png"))) {
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
