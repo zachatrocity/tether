@@ -1,4 +1,4 @@
-# Tether - Keep what matters most within close orbit.
+# Tether - Keep what matters most within orbit.
 
 **Tether is a personal fork of [OpenTagViewer](https://github.com/parawanderer/OpenTagViewer), geared towards tracking your kids using family-owned AirTags and other compatible Find My tags from Android.** It builds on the upstream project's work with a family-focused identity and a small set of authentication fixes; it is not an official OpenTagViewer release.
 
