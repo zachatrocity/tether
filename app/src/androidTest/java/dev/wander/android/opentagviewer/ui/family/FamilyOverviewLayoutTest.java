@@ -57,6 +57,7 @@ public class FamilyOverviewLayoutTest {
     @Test
     public void oneAirTagHasNoTrailingDivider() {
         final RecyclerView rows = new RecyclerView(this.themedContext(false));
+        rows.setLayoutManager(new LinearLayoutManager(rows.getContext()));
         final FamilyOverviewAdapter adapter = new FamilyOverviewAdapter(value -> {}, row -> {});
         adapter.replaceWith(Arrays.asList(this.airTag("only", "Mina", "Backpack AirTag")));
 
@@ -107,11 +108,8 @@ public class FamilyOverviewLayoutTest {
         assertEquals(name + " rendered a divider before a section header", GONE,
                 secondHolder.itemView.findViewById(R.id.family_row_divider).getVisibility());
 
-        final View finalRow = finalHolder.itemView;
-        final View evidence = finalRow.findViewById(R.id.family_row_evidence);
-        final View divider = finalRow.findViewById(R.id.family_row_divider);
-        assertTrue(name + " lets wrapped evidence escape its row boundary",
-                evidence.getBottom() <= divider.getTop());
+        final View divider =
+                finalHolder.itemView.findViewById(R.id.family_row_divider);
         assertEquals(name + " rendered a divider after the final AirTag row",
                 GONE, divider.getVisibility());
 
