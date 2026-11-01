@@ -74,9 +74,8 @@ The name and icon express the intended family use. They do not broaden the upstr
 
 After sign-in, Tether opens the Family Overview instead of the map. It groups AirTags under
 local, user-named family profiles and keeps AirTags without a valid profile in an explicit
-**Unassigned AirTags** section, where each row leads with its unique AirTag name and shows the
-assignment state second. Tap a row for that AirTag's details, or use the row's edit action to
-rename its profile or assign an unassigned AirTag.
+**Unassigned AirTags** section. Tap a row for that AirTag's details, or use the row's edit action
+to rename its profile or assign an unassigned AirTag.
 
 Each row distinguishes a recent sighting heard by this phone, a current saved report, a stale
 saved report, and no report. The wording always names the evidence source and marks stale data as

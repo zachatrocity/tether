@@ -93,9 +93,9 @@ public final class FamilyOverviewAdapter
     }
 
     private void bindRow(final RowHolder holder, final FamilyOverviewRow row) {
+        holder.person.setText(row.getPersonName());
 
         if (row.getKind() == FamilyOverviewRow.Kind.EMPTY_PROFILE) {
-            holder.person.setText(row.getPersonName());
             holder.airTag.setText(R.string.family_no_airtag_assigned);
             holder.freshness.setVisibility(GONE);
             holder.evidence.setVisibility(GONE);
@@ -117,13 +117,7 @@ public final class FamilyOverviewAdapter
             throw new IllegalStateException("An AirTag row has no AirTag");
         }
 
-        final boolean unassigned = row.getProfileId() == null;
-        final String primaryLabel = unassigned ? airTag.getName() : row.getPersonName();
-        final String secondaryLabel = unassigned
-                ? holder.itemView.getContext().getString(R.string.family_unassigned)
-                : airTag.getName();
-        holder.person.setText(primaryLabel);
-        holder.airTag.setText(secondaryLabel);
+        holder.airTag.setText(airTag.getName());
         holder.freshness.setVisibility(VISIBLE);
         holder.evidence.setVisibility(VISIBLE);
         holder.statusDot.setVisibility(VISIBLE);
@@ -141,7 +135,7 @@ public final class FamilyOverviewAdapter
 
         final String description = holder.itemView.getContext().getString(
                 R.string.family_row_content_description,
-                primaryLabel, secondaryLabel, freshness, evidence);
+                row.getPersonName(), airTag.getName(), freshness, evidence);
         holder.itemView.setContentDescription(description);
         holder.itemView.setOnClickListener(view -> this.onDetails.accept(airTag.getBeaconId()));
 

@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="120dp"
+    android:minHeight="112dp"
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
@@ -71,7 +71,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="6dp"
         android:maxLines="2"
         android:textColor="?attr/colorOnSurface"
         android:textSize="13sp"
@@ -84,15 +83,15 @@
         android:id="@+id/family_row_evidence"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="12dp"
-        android:maxLines="3"
+        android:layout_marginTop="4dp"
+        android:maxLines="2"
+        android:ellipsize="end"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
         app:layout_constraintStart_toStartOf="@id/family_row_person"
         app:layout_constraintEnd_toStartOf="@id/family_row_chevron"
         app:layout_constraintTop_toBottomOf="@id/family_row_freshness"
-        app:layout_constraintBottom_toTopOf="@id/family_row_divider"
+        app:layout_constraintBottom_toBottomOf="parent"
         tools:text="Near Cedar School · Apple network report · accuracy ~80 m" />
 
     <ImageView
@@ -110,9 +109,9 @@
         app:layout_constraintBottom_toBottomOf="parent" />
 
     <View
-        android:id="@+id/family_row_divider"
         android:layout_width="0dp"
         android:layout_height="1dp"
+        android:layout_marginTop="11dp"
         android:background="?attr/colorOutlineVariant"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
