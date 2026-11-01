@@ -5,6 +5,8 @@ import static android.view.View.VISIBLE;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.res.Configuration;
@@ -36,6 +38,7 @@ import dev.wander.android.opentagviewer.R;
 /** Fixed-size light and dark renders of the approved Home composition. */
 @RunWith(AndroidJUnit4.class)
 public class FamilyOverviewLayoutTest {
+    /** Pixel 6 at 420 dpi: the approved approximately 412 by 915dp compact target. */
     private static final int WIDTH_PX = 1080;
     private static final int HEIGHT_PX = 2400;
 
@@ -75,6 +78,19 @@ public class FamilyOverviewLayoutTest {
                 View.MeasureSpec.makeMeasureSpec(WIDTH_PX, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(HEIGHT_PX, View.MeasureSpec.EXACTLY));
         root.layout(0, 0, WIDTH_PX, HEIGHT_PX);
+        final View scrollingContent = root.findViewById(R.id.family_overview_scroll);
+        final View mapControl = root.findViewById(R.id.family_open_map);
+        assertTrue(name + " lets scrolling content run behind the floating map control",
+                scrollingContent.getBottom() <= mapControl.getTop());
+
+        final RecyclerView.ViewHolder finalHolder =
+                rows.findViewHolderForAdapterPosition(3);
+        assertNotNull(name + " did not lay out the final compact row", finalHolder);
+        final View finalRow = finalHolder.itemView;
+        final View evidence = finalRow.findViewById(R.id.family_row_evidence);
+        final View divider = finalRow.findViewById(R.id.family_row_divider);
+        assertTrue(name + " lets wrapped evidence collide with its divider",
+                evidence.getBottom() <= divider.getTop());
 
         final Bitmap bitmap = Bitmap.createBitmap(WIDTH_PX, HEIGHT_PX, Bitmap.Config.ARGB_8888);
         final Canvas canvas = new Canvas(bitmap);

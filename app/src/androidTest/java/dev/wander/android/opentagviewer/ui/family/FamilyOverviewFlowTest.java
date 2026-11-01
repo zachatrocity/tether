@@ -4,6 +4,7 @@ import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -17,6 +18,7 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.widget.NestedScrollView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.intent.Intents;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -102,6 +104,40 @@ public class FamilyOverviewFlowTest {
         Eventually.check(() -> assertTrue("the global menu did not open Map",
                 sentIntent(MapsActivity.class, null, null)));
     }
+    @Test
+    public void compactHomeKeepsTheFinalNamedAirTagAboveTheFloatingMapControl() {
+        this.openHome();
+
+        Eventually.check(() -> this.scenario.onActivity(activity -> {
+            final View unassigned = rowNamed(activity, "Keys AirTag");
+            assertNotNull("the final unassigned AirTag row never appeared", unassigned);
+            assertEquals("the AirTag name must lead an unassigned row",
+                    "Keys AirTag",
+                    ((TextView) unassigned.findViewById(R.id.family_row_person))
+                            .getText().toString());
+            assertEquals("assignment state must remain visible without dominating the row",
+                    activity.getString(R.string.family_unassigned),
+                    ((TextView) unassigned.findViewById(R.id.family_row_airtag))
+                            .getText().toString());
+
+            final NestedScrollView scroll =
+                    activity.findViewById(R.id.family_overview_scroll);
+            final View mapControl = activity.findViewById(R.id.family_open_map);
+            assertTrue("the compact list viewport extends behind the floating map control",
+                    scroll.getBottom() <= mapControl.getTop());
+
+            scroll.fullScroll(View.FOCUS_DOWN);
+            final View finalRow = laidOutRowNamed(activity, "Keys AirTag");
+            assertNotNull("the final row was not laid out on the compact screen", finalRow);
+            final int[] finalRowLocation = new int[2];
+            final int[] mapControlLocation = new int[2];
+            finalRow.getLocationOnScreen(finalRowLocation);
+            mapControl.getLocationOnScreen(mapControlLocation);
+            assertTrue("the final row cannot scroll completely above the floating map control",
+                    finalRowLocation[1] + finalRow.getHeight() <= mapControlLocation[1]);
+        }));
+    }
+
 
 
     private void openHome() {
@@ -118,6 +154,18 @@ public class FamilyOverviewFlowTest {
                     adapterContainsText(rows,
                             activity.getString(R.string.family_unassigned_airtags)));
         }));
+    }
+
+    private static View laidOutRowNamed(
+            final FamilyOverviewActivity activity, final String airTagName) {
+        final RecyclerView rows = activity.findViewById(R.id.family_rows);
+        for (int index = 0; index < rows.getChildCount(); index++) {
+            final View row = rows.getChildAt(index);
+            if (containsText(row, airTagName)) {
+                return row;
+            }
+        }
+        return null;
     }
 
     private static View rowNamed(
