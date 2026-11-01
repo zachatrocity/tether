@@ -1,5 +1,6 @@
 package dev.wander.android.opentagviewer.ui.family;
 
+import static android.view.View.GONE;
 import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
@@ -36,6 +37,7 @@ import dev.wander.android.opentagviewer.DeviceInfoActivity;
 import dev.wander.android.opentagviewer.Eventually;
 import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.MapsActivity;
+import dev.wander.android.opentagviewer.MyDevicesListActivity;
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.db.repo.FamilyProfileRepository;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
@@ -104,6 +106,32 @@ public class FamilyOverviewFlowTest {
         Eventually.check(() -> assertTrue("the global menu did not open Map",
                 sentIntent(MapsActivity.class, null, null)));
     }
+
+    @Test
+    public void addAirTagAndReportsRemainReachableFromTheNavigationMenu() {
+        this.openHome();
+
+        this.scenario.onActivity(activity -> {
+            assertTrue(activity.findViewById(R.id.family_navigation_menu).performClick());
+            assertTrue("the Add AirTag menu item did not handle its click",
+                    navigationMenu(activity).getMenu()
+                            .performIdentifierAction(R.id.navigation_add_airtag, 0));
+        });
+        Eventually.check(() -> assertTrue("the navigation menu did not open Add AirTag",
+                sentIntent(MyDevicesListActivity.class, MyDevicesListActivity.EXTRA_DESTINATION,
+                        MyDevicesListActivity.DESTINATION_ADD_AIR_TAG)));
+
+        this.scenario.onActivity(activity -> {
+            assertTrue(activity.findViewById(R.id.family_navigation_menu).performClick());
+            assertTrue("the Reports menu item did not handle its click",
+                    navigationMenu(activity).getMenu()
+                            .performIdentifierAction(R.id.navigation_reports, 0));
+        });
+        Eventually.check(() -> assertTrue("the navigation menu did not open Reports",
+                sentIntent(MyDevicesListActivity.class, MyDevicesListActivity.EXTRA_DESTINATION,
+                        MyDevicesListActivity.DESTINATION_REPORT_HISTORY)));
+    }
+
     @Test
     public void compactHomeKeepsTheFinalNamedAirTagAboveTheFloatingMapControl() {
         this.openHome();
@@ -111,6 +139,8 @@ public class FamilyOverviewFlowTest {
         Eventually.check(() -> this.scenario.onActivity(activity -> {
             final View unassigned = rowNamed(activity, "Keys AirTag");
             assertNotNull("the final unassigned AirTag row never appeared", unassigned);
+            assertEquals("the final AirTag row rendered a trailing divider",
+                    GONE, unassigned.findViewById(R.id.family_row_divider).getVisibility());
             assertEquals("the AirTag name must lead an unassigned row",
                     "Keys AirTag",
                     ((TextView) unassigned.findViewById(R.id.family_row_person))
@@ -123,8 +153,8 @@ public class FamilyOverviewFlowTest {
             final NestedScrollView scroll =
                     activity.findViewById(R.id.family_overview_scroll);
             final View mapControl = activity.findViewById(R.id.family_open_map);
-            assertTrue("the compact list viewport extends behind the floating map control",
-                    scroll.getBottom() <= mapControl.getTop());
+            assertTrue("the floating Map control still owns a full-width bottom region",
+                    scroll.getBottom() > mapControl.getTop());
 
             scroll.fullScroll(View.FOCUS_DOWN);
             final View finalRow = laidOutRowNamed(activity, "Keys AirTag");
@@ -137,8 +167,6 @@ public class FamilyOverviewFlowTest {
                     finalRowLocation[1] + finalRow.getHeight() <= mapControlLocation[1]);
         }));
     }
-
-
 
     private void openHome() {
         this.scenario = ActivityScenario.launch(FamilyOverviewActivity.class);
@@ -243,13 +271,15 @@ public class FamilyOverviewFlowTest {
     private static boolean sentIntent(
             final Class<?> destination,
             final String extraName,
-            final String extraValue) {
+            final Object extraValue) {
         for (final Intent intent : Intents.getIntents()) {
             if (intent.getComponent() == null
                     || !destination.getName().equals(intent.getComponent().getClassName())) {
                 continue;
             }
-            if (extraName == null || extraValue.equals(intent.getStringExtra(extraName))) {
+            if (extraName == null
+                    || (intent.hasExtra(extraName)
+                        && extraValue.equals(intent.getExtras().get(extraName)))) {
                 return true;
             }
         }

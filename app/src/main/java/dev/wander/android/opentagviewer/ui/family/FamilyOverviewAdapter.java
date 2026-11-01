@@ -89,11 +89,12 @@ public final class FamilyOverviewAdapter
             ((SectionHolder) holder).title.setText(row.getPersonName());
             return;
         }
-        this.bindRow((RowHolder) holder, row);
+        this.bindRow((RowHolder) holder, row, this.isFollowedByAirTag(position));
     }
 
-    private void bindRow(final RowHolder holder, final FamilyOverviewRow row) {
-
+    private void bindRow(
+            final RowHolder holder, final FamilyOverviewRow row, final boolean showDivider) {
+        holder.divider.setVisibility(showDivider ? VISIBLE : GONE);
         if (row.getKind() == FamilyOverviewRow.Kind.EMPTY_PROFILE) {
             holder.person.setText(row.getPersonName());
             holder.airTag.setText(R.string.family_no_airtag_assigned);
@@ -228,6 +229,19 @@ public final class FamilyOverviewAdapter
                 holder.itemView, attribute)));
     }
 
+    private boolean isFollowedByAirTag(final int position) {
+        final FamilyOverviewRow next =
+                position + 1 < this.rows.size() ? this.rows.get(position + 1) : null;
+        return hasDividerBetween(this.rows.get(position), next);
+    }
+
+    static boolean hasDividerBetween(
+            final FamilyOverviewRow current, final FamilyOverviewRow next) {
+        return current.getKind() == FamilyOverviewRow.Kind.AIR_TAG
+                && next != null
+                && next.getKind() == FamilyOverviewRow.Kind.AIR_TAG;
+    }
+
     @Override
     public int getItemCount() {
         return this.rows.size();
@@ -250,6 +264,7 @@ public final class FamilyOverviewAdapter
         private final ImageView statusDot;
         private final ImageView chevron;
         private final ImageButton edit;
+        private final View divider;
 
         RowHolder(final View view) {
             super(view);
@@ -260,6 +275,7 @@ public final class FamilyOverviewAdapter
             this.statusDot = view.findViewById(R.id.family_row_status_dot);
             this.chevron = view.findViewById(R.id.family_row_chevron);
             this.edit = view.findViewById(R.id.family_row_edit_profile);
+            this.divider = view.findViewById(R.id.family_row_divider);
         }
     }
 }
