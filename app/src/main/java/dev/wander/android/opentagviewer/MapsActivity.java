@@ -1112,9 +1112,7 @@ public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMa
                                 | Intent.FLAG_ACTIVITY_SINGLE_TOP));
                 break;
             case REPORTS:
-                this.startActivity(new Intent(this, MyDevicesListActivity.class)
-                        .putExtra(MyDevicesListActivity.EXTRA_DESTINATION,
-                                MyDevicesListActivity.DESTINATION_REPORT_HISTORY));
+                this.startActivity(new Intent(this, ReportHistoryActivity.class));
                 break;
             case ADD_AIR_TAG:
                 this.deviceListActivityLauncher.launch(

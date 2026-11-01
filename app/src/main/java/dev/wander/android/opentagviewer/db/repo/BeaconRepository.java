@@ -18,6 +18,7 @@ import dev.wander.android.opentagviewer.data.model.BeaconLocationReport;
 import dev.wander.android.opentagviewer.db.repo.model.BeaconData;
 import dev.wander.android.opentagviewer.db.repo.model.ImportData;
 import dev.wander.android.opentagviewer.db.repo.model.LastSightingData;
+import dev.wander.android.opentagviewer.db.repo.model.TaggedLocationReport;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
 import dev.wander.android.opentagviewer.db.room.entity.BeaconNamingRecord;
 import dev.wander.android.opentagviewer.db.room.entity.LastBleSighting;
@@ -1000,30 +1001,78 @@ public class BeaconRepository {
     }
 
     public Observable<Map<String, BeaconLocationReport>> getLastLocationsForAll() {
-        return Observable.fromCallable(() -> {
+        return Observable.fromCallable(() -> toReportMap(
+                db.locationReportDao().getLastForAllBeacons()))
+                .subscribeOn(Schedulers.io());
+    }
 
-            var locationReports = db.locationReportDao().getLastForAllBeacons();
+    /**
+     * The latest Apple network report for every AirTag, independent of newer local Bluetooth
+     * fixes. A detail screen must be able to show both sources at once rather than letting the
+     * newest row erase the other kind of evidence.
+     */
+    public Observable<Map<String, BeaconLocationReport>> getLastAppleLocationsForAll() {
+        return Observable.fromCallable(() -> toReportMap(
+                db.locationReportDao().getLastForAllBeaconsWithProvenance(
+                        LocationReport.PROVENANCE_APPLE)))
+                .subscribeOn(Schedulers.io());
+    }
 
-            Map<String, BeaconLocationReport> result = new HashMap<>();
-            for (var locationReport: locationReports) {
-                result.put(
-                    locationReport.beaconId,
-                    BeaconLocationReport.builder()
-                            .publishedAt(locationReport.publishedAt)
-                            .description(locationReport.description)
-                            .timestamp(locationReport.timestamp)
-                            .confidence(locationReport.confidence)
-                            .latitude(locationReport.latitude)
-                            .longitude(locationReport.longitude)
-                            .horizontalAccuracy(locationReport.horizontalAccuracy)
-                            .status(locationReport.status)
-                            .provenance(locationReport.provenance)
-                            .build()
-                );
-            }
+    /** Latest phone-positioned Bluetooth sighting for every AirTag. */
+    public Observable<Map<String, BeaconLocationReport>> getLastLocalLocationsForAll() {
+        return Observable.fromCallable(() -> toReportMap(
+                db.locationReportDao().getLastForAllBeaconsWithProvenance(
+                        LocationReport.PROVENANCE_LOCAL)))
+                .subscribeOn(Schedulers.io());
+    }
 
-            return result;
-        }).subscribeOn(Schedulers.io());
+    /** All saved reports from one source, newest first. */
+    public Observable<List<TaggedLocationReport>> getLocationsForAllWithProvenance(
+            final String provenance) {
+        return Observable.fromCallable(() -> toTaggedReports(
+                db.locationReportDao().getAllWithProvenance(provenance)))
+                .subscribeOn(Schedulers.io());
+    }
+
+    public Observable<List<TaggedLocationReport>> getAllAppleLocations() {
+        return this.getLocationsForAllWithProvenance(LocationReport.PROVENANCE_APPLE);
+    }
+
+    public Observable<List<TaggedLocationReport>> getAllLocalLocations() {
+        return this.getLocationsForAllWithProvenance(LocationReport.PROVENANCE_LOCAL);
+    }
+
+    private static Map<String, BeaconLocationReport> toReportMap(
+            final List<LocationReport> locationReports) {
+        final Map<String, BeaconLocationReport> result = new HashMap<>();
+        for (final LocationReport locationReport : locationReports) {
+            result.put(locationReport.beaconId, toReport(locationReport));
+        }
+        return result;
+    }
+
+    private static List<TaggedLocationReport> toTaggedReports(
+            final List<LocationReport> locationReports) {
+        final List<TaggedLocationReport> result = new ArrayList<>(locationReports.size());
+        for (final LocationReport locationReport : locationReports) {
+            result.add(new TaggedLocationReport(
+                    locationReport.beaconId, toReport(locationReport)));
+        }
+        return result;
+    }
+
+    private static BeaconLocationReport toReport(final LocationReport locationReport) {
+        return BeaconLocationReport.builder()
+                .publishedAt(locationReport.publishedAt)
+                .description(locationReport.description)
+                .timestamp(locationReport.timestamp)
+                .confidence(locationReport.confidence)
+                .latitude(locationReport.latitude)
+                .longitude(locationReport.longitude)
+                .horizontalAccuracy(locationReport.horizontalAccuracy)
+                .status(locationReport.status)
+                .provenance(locationReport.provenance)
+                .build();
     }
 
     public Observable<List<BeaconLocationReport>> getLocationsFor(final String beaconId, final long unixStartTimeMS, final long unixEndTimeMS) {

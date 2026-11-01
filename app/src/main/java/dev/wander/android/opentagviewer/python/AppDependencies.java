@@ -22,10 +22,13 @@ import dev.wander.android.opentagviewer.ble.RoutingSoundTrigger;
 import dev.wander.android.opentagviewer.python.icloud.ICloudService;
 import dev.wander.android.opentagviewer.python.icloud.PythonICloudService;
 import dev.wander.android.opentagviewer.db.repo.model.UserSettings;
+import dev.wander.android.opentagviewer.db.repo.BeaconRepository;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
 import dev.wander.android.opentagviewer.service.web.AnisetteServerTesterService;
 import dev.wander.android.opentagviewer.util.android.AddressLookup;
 import dev.wander.android.opentagviewer.util.history.HistoryArchiveImporter;
+import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresh;
+import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresher;
 import dev.wander.android.opentagviewer.util.history.HistoryImporter;
 
 /**
@@ -137,6 +140,10 @@ public final class AppDependencies {
             context -> new HistoryImporter(OpenTagViewerDatabase.getInstance(
                     context.getApplicationContext()));
 
+    /** Builds the user-triggered one-AirTag network refresh; replaceable for screen flows. */
+    private static Function<BeaconRepository, AirTagReportRefresh> airTagRefreshFactory =
+            AirTagReportRefresher::new;
+
     /**
      * Turns coordinates into something a person recognises.
      *
@@ -237,6 +244,10 @@ public final class AppDependencies {
         return historyImporterFactory.apply(context);
     }
 
+    public static AirTagReportRefresh airTagReportRefresh(final BeaconRepository beacons) {
+        return airTagRefreshFactory.apply(beacons);
+    }
+
     public static AnisetteServerTesterService serverTester(final CronetEngine engine) {
         return serverTesterFactory.apply(engine);
     }
@@ -290,6 +301,11 @@ public final class AppDependencies {
     }
 
     @VisibleForTesting
+    public static void replaceAirTagReportRefresh(final AirTagReportRefresh replacement) {
+        airTagRefreshFactory = beacons -> replacement;
+    }
+
+    @VisibleForTesting
     public static void replaceAnisette(final Function<UserSettings, AnisetteSource> replacement) {
         anisetteFactory = (context, settings, hasSession) -> replacement.apply(settings);
     }
@@ -307,6 +323,7 @@ public final class AppDependencies {
         bundleBuilder = new ChaquopyBundleBuilder();
         historyImporterFactory = context -> new HistoryImporter(
                 OpenTagViewerDatabase.getInstance(context.getApplicationContext()));
+        airTagRefreshFactory = AirTagReportRefresher::new;
         icloudFactory = AppDependencies::openRealICloud;
         geocoderFactory = (context, locale) ->
                 AddressLookup.through(new Geocoder(context, locale));

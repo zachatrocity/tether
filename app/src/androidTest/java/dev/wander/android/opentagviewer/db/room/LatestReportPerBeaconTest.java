@@ -130,6 +130,23 @@ public class LatestReportPerBeaconTest {
         assertEquals(4_000L, byBeacon.get(A_TAG).timestamp);
     }
 
+    /** A newer local fix must not hide the latest Apple report on a two-source detail surface. */
+    @Test
+    public void latestAppleReportIgnoresNewerLocalFixes() {
+        this.db.locationReportDao().insertAll(
+                report(A_TAG, 9_000L, 9.0),
+                report(A_TAG, 10_000L, 10.0, LocationReport.PROVENANCE_LOCAL),
+                report(A_TAG, 6_000L, 6.0));
+
+        final Map<String, LocationReport> appleByBeacon = byBeacon(
+                this.db.locationReportDao().getLastForAllBeaconsWithProvenance(
+                        LocationReport.PROVENANCE_APPLE));
+
+        assertEquals(1, appleByBeacon.size());
+        assertEquals(9_000L, appleByBeacon.get(A_TAG).timestamp);
+        assertEquals(LocationReport.PROVENANCE_APPLE, appleByBeacon.get(A_TAG).provenance);
+    }
+
     /** And an empty table is an empty list rather than a row of nulls. */
     @Test
     public void nothingStoredIsNothingReturned() {
@@ -164,6 +181,14 @@ public class LatestReportPerBeaconTest {
      */
     private static LocationReport report(
             final String beaconId, final long timestamp, final double position) {
+        return report(beaconId, timestamp, position, LocationReport.PROVENANCE_APPLE);
+    }
+
+    private static LocationReport report(
+            final String beaconId,
+            final long timestamp,
+            final double position,
+            final String provenance) {
         return LocationReport.builder()
                 .hashId(beaconId + "-" + timestamp)
                 .beaconId(beaconId)
@@ -176,7 +201,7 @@ public class LatestReportPerBeaconTest {
                 .horizontalAccuracy(10L)
                 .status(0)
                 .lastUpdate(timestamp)
-                .provenance(LocationReport.PROVENANCE_APPLE)
+                .provenance(provenance)
                 .build();
     }
 }

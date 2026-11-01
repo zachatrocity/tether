@@ -417,9 +417,7 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
     }
 
     private void openReports() {
-        this.startActivity(new Intent(this, MyDevicesListActivity.class)
-                .putExtra(MyDevicesListActivity.EXTRA_DESTINATION,
-                        MyDevicesListActivity.DESTINATION_REPORT_HISTORY));
+        this.startActivity(new Intent(this, ReportHistoryActivity.class));
     }
 
     private void openAddAirTag() {

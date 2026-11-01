@@ -154,6 +154,10 @@
             android:name=".DeviceInfoActivity"
             android:exported="false"
             android:theme="@style/Theme.OpenTagViewer.GenericGreyishActivity" />
+        <activity
+            android:name=".ReportHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenTagViewer.GenericGreyishActivity" />
 
         <activity
             android:name=".HistoryViewActivity"
