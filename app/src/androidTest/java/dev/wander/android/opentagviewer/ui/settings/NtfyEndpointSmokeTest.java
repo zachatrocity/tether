@@ -81,15 +81,15 @@ public class NtfyEndpointSmokeTest {
     @Test
     public void realScreenSendsOneGenericTestToTheExactConfiguredTopic() throws Exception {
         onView(withId(R.id.ntfy_server_url))
-                .perform(replaceText(this.endpoint.url() + "/reverse/proxy/"));
-        onView(withId(R.id.ntfy_topic)).perform(replaceText("family / café"));
+                .perform(scrollTo(), replaceText(this.endpoint.url() + "/reverse/proxy/"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_topic)).perform(scrollTo(), replaceText("family / café"), closeSoftKeyboard());
         onView(withId(R.id.ntfy_access_token))
-                .perform(replaceText("secret-token"), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText("secret-token"), closeSoftKeyboard());
 
         onView(withId(R.id.ntfy_test)).perform(scrollTo(), click());
 
         Eventually.check(() -> onView(withText(R.string.ntfy_test_success))
-                .check(matches(isDisplayed())));
+                .perform(scrollTo()).check(matches(isDisplayed())));
         assertTrue(this.endpoint.requestArrived.await(5, TimeUnit.SECONDS));
         assertNull(this.endpoint.failure);
         assertEquals(1, this.endpoint.requestCount);
@@ -104,10 +104,10 @@ public class NtfyEndpointSmokeTest {
     @Test
     public void enabledScreenConfigurationFeedsTheRealLeftBehindDispatcherOnce() throws Exception {
         onView(withId(R.id.ntfy_server_url))
-                .perform(replaceText(this.endpoint.url() + "/reverse/proxy/"));
-        onView(withId(R.id.ntfy_topic)).perform(replaceText("family-alerts"));
+                .perform(scrollTo(), replaceText(this.endpoint.url() + "/reverse/proxy/"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_topic)).perform(scrollTo(), replaceText("family-alerts"), closeSoftKeyboard());
         onView(withId(R.id.ntfy_access_token))
-                .perform(replaceText("secret-token"), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText("secret-token"), closeSoftKeyboard());
         onView(withId(R.id.ntfy_enabled)).perform(scrollTo(), click());
         assertTrue(new NtfySettings(this.context).isEnabled());
 
