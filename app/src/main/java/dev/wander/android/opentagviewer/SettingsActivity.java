@@ -231,6 +231,8 @@ public class SettingsActivity extends AppCompatActivity {
         this.binding.setOnClickUnlinkAccount(this::onClickUnlinkAccount);
         this.binding.setOnClickExtraSources(() ->
                 startActivity(new Intent(this, ExtraSourcesSettingsActivity.class)));
+        this.binding.setOnClickNtfy(() ->
+                startActivity(new Intent(this, NtfySettingsActivity.class)));
 
         this.sayWhetherTheAccountIsLinked();
 

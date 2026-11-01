@@ -17,13 +17,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * A googlefind service on 127.0.0.1, for {@code ExtraSourcesApiTest}: answers each path with a
- * canned status and body, and records what was asked.
+ * A small HTTP service on 127.0.0.1 for blocking-client tests. It records each request and
+ * answers configured paths with a canned status, body, and optional delay.
  *
  * <p>A plain {@link ServerSocket} rather than the JDK's HTTP server, which is not on the unit test
  * compile classpath here - the same choice as {@code FakeApkServer}.
  */
-final class FakeGooglefindServer implements Closeable {
+final class FakeHttpServer implements Closeable {
 
     /** One request as it arrived. Header names are lowercased. */
     static final class Request {
@@ -43,10 +43,12 @@ final class FakeGooglefindServer implements Closeable {
     private static final class Answer {
         final int status;
         final String body;
+        final long delayMs;
 
-        Answer(final int status, final String body) {
+        Answer(final int status, final String body, final long delayMs) {
             this.status = status;
             this.body = body;
+            this.delayMs = delayMs;
         }
     }
 
@@ -55,10 +57,10 @@ final class FakeGooglefindServer implements Closeable {
     private final Map<String, Answer> answers = new HashMap<>();
     private final List<Request> requests = new ArrayList<>();
 
-    FakeGooglefindServer() throws IOException {
+    FakeHttpServer() throws IOException {
         // Port 0: the OS picks a free one, so parallel tests cannot collide on a fixed number.
         this.socket = new ServerSocket(0, 0, InetAddress.getByName("127.0.0.1"));
-        final Thread thread = new Thread(this::serveUntilStopped, "FakeGooglefindServer");
+        final Thread thread = new Thread(this::serveUntilStopped, "FakeHttpServer");
         thread.setDaemon(true);
         thread.start();
     }
@@ -68,8 +70,13 @@ final class FakeGooglefindServer implements Closeable {
     }
 
     /** Answer any request whose path (query excluded) is {@code path}. Unknown paths get 404. */
-    synchronized FakeGooglefindServer answer(final String path, final int status, final String body) {
-        this.answers.put(path, new Answer(status, body));
+    synchronized FakeHttpServer answer(final String path, final int status, final String body) {
+        return this.answerAfter(path, status, body, 0);
+    }
+
+    synchronized FakeHttpServer answerAfter(final String path, final int status, final String body,
+                                            final long delayMs) {
+        this.answers.put(path, new Answer(status, body, delayMs));
         return this;
     }
 
@@ -95,7 +102,7 @@ final class FakeGooglefindServer implements Closeable {
                 if (!this.stopped.get()) {
                     // Printed: on its own thread an exception otherwise surfaces only as a test
                     // timing out on a read, with nothing to say why.
-                    System.err.println("FakeGooglefindServer: failed to answer a request: " + e);
+                    System.err.println("FakeHttpServer: failed to answer a request: " + e);
                 }
                 return;
             }
@@ -123,7 +130,15 @@ final class FakeGooglefindServer implements Closeable {
         final Answer answer;
         synchronized (this) {
             this.requests.add(new Request(requestLine[0], target, headers, body));
-            answer = this.answers.getOrDefault(path, new Answer(404, "{\"detail\":\"Not Found\"}"));
+            answer = this.answers.getOrDefault(path, new Answer(404, "{\"detail\":\"Not Found\"}", 0));
+        }
+        if (answer.delayMs > 0) {
+            try {
+                Thread.sleep(answer.delayMs);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("fake HTTP response interrupted", e);
+            }
         }
 
         final byte[] payload = answer.body.getBytes(StandardCharsets.UTF_8);

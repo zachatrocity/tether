@@ -30,12 +30,12 @@ import dev.wander.android.opentagviewer.db.room.entity.LocationReport;
  */
 public class ExtraSourcesApiTest {
 
-    private FakeGooglefindServer server;
+    private FakeHttpServer server;
     private final Map<String, String> settings = new HashMap<>();
 
     @Before
     public void startTheService() throws IOException {
-        this.server = new FakeGooglefindServer();
+        this.server = new FakeHttpServer();
         this.settings.put(ExtraSourcesSettings.GOOGLE_URL, this.server.url());
         this.settings.put(ExtraSourcesSettings.GOOGLE_TOKEN, "s3cret");
     }
@@ -58,7 +58,7 @@ public class ExtraSourcesApiTest {
 
         this.api().googleDevices();
 
-        final FakeGooglefindServer.Request request = this.server.lastRequest();
+        final FakeHttpServer.Request request = this.server.lastRequest();
         assertEquals("Bearer s3cret", request.headers.get("authorization"));
         assertEquals("s3cret", request.headers.get("x-api-token"));
     }
@@ -72,7 +72,7 @@ public class ExtraSourcesApiTest {
 
         this.api().googleDevices();
 
-        final FakeGooglefindServer.Request request = this.server.lastRequest();
+        final FakeHttpServer.Request request = this.server.lastRequest();
         assertEquals("Basic bWU6cHc=", request.headers.get("authorization"));
         assertEquals("s3cret", request.headers.get("x-api-token"));
     }
@@ -84,7 +84,7 @@ public class ExtraSourcesApiTest {
 
         this.api().googleDevices();
 
-        final FakeGooglefindServer.Request request = this.server.lastRequest();
+        final FakeHttpServer.Request request = this.server.lastRequest();
         assertNull(request.headers.get("authorization"));
         assertNull(request.headers.get("x-api-token"));
     }
@@ -167,7 +167,7 @@ public class ExtraSourcesApiTest {
 
         assertTrue(this.api().googleLocate("abc", 25));
 
-        final FakeGooglefindServer.Request request = this.server.lastRequest();
+        final FakeHttpServer.Request request = this.server.lastRequest();
         assertEquals("POST", request.method);
         assertEquals("/api/devices/abc/locate?wait=25", request.target);
         assertEquals("{}", request.body);
