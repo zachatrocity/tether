@@ -428,7 +428,7 @@ If Apple simply refused the request, waiting and trying again is worth doing fir
     <string name="ntfy_settings_title">AirTag ntfy notifications</string>
     <string name="ntfy_settings_explainer">Connect your own ntfy server for optional AirTag alerts. Tether does not provide or operate an ntfy service.</string>
     <string name="ntfy_enable_airtag_alerts">Enable ntfy for AirTag alerts</string>
-    <string name="ntfy_enable_explainer">Off by default. Test the connection before enabling delivery. AirTag event delivery is configured separately.</string>
+    <string name="ntfy_enable_explainer">Off by default. When enabled, Tether sends the AirTag label, relative last-heard time, and alert time to this server and topic. Local alerts still work if ntfy fails. Failed requests are not retried.</string>
     <string name="ntfy_topic">Topic</string>
     <string name="ntfy_clear_saved_token">Clear saved token</string>
     <string name="ntfy_send_test">Send test notification</string>
@@ -451,4 +451,6 @@ If Apple simply refused the request, waiting and trying again is worth doing fir
     <string name="ntfy_test_failed_dns">The server name could not be found. Check the address and network.</string>
     <string name="ntfy_test_failed_tls">The secure connection failed. Check the server certificate and this phone’s clock.</string>
     <string name="ntfy_test_failed_network">The notification could not be sent. Check the address and network, then try again.</string>
+    <string name="ntfy_left_behind_title">AirTag may have been left behind</string>
+    <string name="ntfy_left_behind_message">%1$s may have been left behind. Last heard: %2$s.</string>
 </resources>

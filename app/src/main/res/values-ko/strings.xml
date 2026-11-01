@@ -428,7 +428,7 @@ Apple이 요청을 거부한 것뿐이라면 잠시 기다렸다가 다시 시�
     <string name="ntfy_settings_title">AirTag ntfy 알림</string>
     <string name="ntfy_settings_explainer">선택적 AirTag 알림을 위해 내 ntfy 서버를 연결하세요. Tether는 ntfy 서비스를 제공하거나 운영하지 않습니다.</string>
     <string name="ntfy_enable_airtag_alerts">AirTag 알림에 ntfy 사용</string>
-    <string name="ntfy_enable_explainer">기본값은 꺼짐입니다. 전송을 사용하기 전에 연결을 테스트하세요. AirTag 이벤트 전송은 별도로 설정합니다.</string>
+    <string name="ntfy_enable_explainer">기본값은 꺼짐입니다. 사용하면 Tether가 AirTag 라벨, 마지막 감지 후 경과 시간, 알림 시간을 이 서버와 주제로 보냅니다. ntfy 전송에 실패해도 로컬 알림은 계속 작동합니다. 실패한 요청은 다시 시도하지 않습니다.</string>
     <string name="ntfy_topic">주제</string>
     <string name="ntfy_clear_saved_token">저장된 토큰 지우기</string>
     <string name="ntfy_send_test">테스트 알림 보내기</string>
@@ -451,4 +451,6 @@ Apple이 요청을 거부한 것뿐이라면 잠시 기다렸다가 다시 시�
     <string name="ntfy_test_failed_dns">서버 이름을 찾을 수 없습니다. 주소와 네트워크를 확인하세요.</string>
     <string name="ntfy_test_failed_tls">보안 연결에 실패했습니다. 서버 인증서와 이 휴대전화의 시간을 확인하세요.</string>
     <string name="ntfy_test_failed_network">알림을 보낼 수 없습니다. 주소와 네트워크를 확인한 후 다시 시도하세요.</string>
+    <string name="ntfy_left_behind_title">AirTag를 두고 왔을 수 있습니다</string>
+    <string name="ntfy_left_behind_message">%1$s를 두고 왔을 수 있습니다. 마지막 감지: %2$s.</string>
 </resources>

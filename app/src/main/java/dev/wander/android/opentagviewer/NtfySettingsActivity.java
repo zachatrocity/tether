@@ -25,7 +25,7 @@ import dev.wander.android.opentagviewer.source.NtfyPublisher;
 import dev.wander.android.opentagviewer.source.NtfySettings;
 import dev.wander.android.opentagviewer.ui.compat.WindowPaddingUtil;
 
-/** Optional ntfy delivery for future AirTag left-behind alerts. */
+/** Optional ntfy delivery for existing AirTag left-behind alerts. */
 public class NtfySettingsActivity extends AppCompatActivity {
     private static final Function<NtfySettings, NtfyPublisher> REAL_PUBLISHER = NtfyClient::new;
     private static Function<NtfySettings, NtfyPublisher> publisherFactory = REAL_PUBLISHER;

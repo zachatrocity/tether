@@ -14,7 +14,7 @@
 - Keep location history using the functionality inherited from OpenTagViewer.
 - Sign in using the patched Mac-compatible authentication flow, with an explicit remote-server option.
 - Use a distinct **Tether** app identity and **Orbit** icon, without replacing the upstream app.
-- Configure and test an optional self-hosted ntfy endpoint for future AirTag alerts.
+- Configure optional ntfy delivery for the existing opt-in AirTag left-behind alerts.
 
 Tether shows tag reports from the Find My network, not a continuous GPS feed from a child's phone. Reports can be delayed or unavailable; this rebrand does not add live child tracking, geofence alerts, or emergency monitoring.
 
@@ -46,18 +46,27 @@ The login screen exposes **Try a remote server** before a failed sign-in. A remo
 
 ### Optional ntfy endpoint
 
-Open **Settings → AirTag notifications** to configure a self-hosted ntfy server, topic,
-and optional access token. The server address may include a reverse-proxy path. Delivery is
-off by default; use **Send test notification** before enabling it.
+Open **Settings → AirTag notifications** to configure an ntfy server, topic, and optional
+access token. The server address may include a reverse-proxy path. Delivery is off by default;
+use **Send test notification** before enabling it.
 
-The access token is encrypted with a dedicated key in Android Keystore and is not shown again
-after it is saved. HTTPS protects the token and notification in transit. LAN HTTP endpoints are
-allowed for self-hosting, but the Settings screen warns that both values travel unencrypted.
-Test notifications contain only generic Tether setup text.
+The server address, topic, and enabled state persist in Tether's private app preferences. The
+access token is encrypted with a dedicated key in Android Keystore, stays on this device, and is
+not shown again after it is saved. HTTPS protects the token and notification in transit. LAN
+HTTP endpoints are allowed for self-hosting, but both the token and notification are then sent
+unencrypted.
 
-This configuration slice does not yet connect left-behind events to ntfy. It stores and tests
-the endpoint without adding a retry queue, cloud account, or background network request while
-delivery is disabled or incomplete.
+When an enabled AirTag's existing left-behind rule fires, Tether posts the local Android
+notification and starts the chosen alarm first, then schedules one ntfy request. The remote
+message contains only the user-chosen AirTag label, relative last-heard age, and cautious
+“may have been left behind” wording; the request time also reveals the alert time to the
+configured server and topic. It does not send coordinates, place names, Apple account data,
+family-profile names, or location history.
+
+Disabled or incomplete ntfy settings send nothing. A timeout, connection refusal, or non-success
+HTTP response does not delay or remove the local alert and does not stop background scanning.
+Failed requests are not queued or retried; Tether logs only the outcome category and HTTP status,
+when available.
 
 The name and icon express the intended family use. They do not broaden the upstream app's tracker compatibility or promise that every accessory works.
 

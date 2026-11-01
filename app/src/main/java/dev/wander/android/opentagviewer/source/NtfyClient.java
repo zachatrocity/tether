@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
  * Redirects are deliberately not followed: a configured topic must receive exactly one request,
  * and credentials must not be forwarded to another origin.
  */
-public final class NtfyClient implements NtfyPublisher {
+public final class NtfyClient implements NtfyPublisher, NtfyAlertPublisher {
     public static final String TEST_TITLE = "Tether test notification";
     public static final String TEST_PRIORITY = "default";
     public static final String TEST_MESSAGE = "Tether notifications are configured.";
@@ -111,6 +111,7 @@ public final class NtfyClient implements NtfyPublisher {
      *
      * @return true when a request was sent; false when disabled or incomplete
      */
+    @Override
     public boolean publishIfEnabled(final String title, final String priority, final String message)
             throws IOException {
         if (!this.configuration.isEnabled()

@@ -428,7 +428,7 @@
     <string name="ntfy_settings_title">Уведомления AirTag через ntfy</string>
     <string name="ntfy_settings_explainer">Подключите собственный сервер ntfy для необязательных предупреждений AirTag. Tether не предоставляет и не обслуживает сервис ntfy.</string>
     <string name="ntfy_enable_airtag_alerts">Включить ntfy для предупреждений AirTag</string>
-    <string name="ntfy_enable_explainer">По умолчанию выключено. Проверьте соединение перед включением доставки. Доставка событий AirTag настраивается отдельно.</string>
+    <string name="ntfy_enable_explainer">По умолчанию выключено. После включения Tether отправляет на этот сервер и в эту тему название AirTag, относительное время с последнего обнаружения и время предупреждения. Локальные предупреждения продолжат работать при сбое ntfy. Неудачные запросы не повторяются.</string>
     <string name="ntfy_topic">Тема</string>
     <string name="ntfy_clear_saved_token">Удалить сохранённый токен</string>
     <string name="ntfy_send_test">Отправить тестовое уведомление</string>
@@ -451,4 +451,6 @@
     <string name="ntfy_test_failed_dns">Имя сервера не найдено. Проверьте адрес и сеть.</string>
     <string name="ntfy_test_failed_tls">Не удалось установить защищённое соединение. Проверьте сертификат сервера и часы телефона.</string>
     <string name="ntfy_test_failed_network">Не удалось отправить уведомление. Проверьте адрес и сеть, затем повторите попытку.</string>
+    <string name="ntfy_left_behind_title">Возможно, AirTag был забыт</string>
+    <string name="ntfy_left_behind_message">Возможно, %1$s был забыт. Последнее обнаружение: %2$s.</string>
 </resources>

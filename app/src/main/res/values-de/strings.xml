@@ -428,7 +428,7 @@ Wenn Apple die Anfrage lediglich abgelehnt hat, lohnt es sich, zu warten und es 
     <string name="ntfy_settings_title">AirTag-ntfy-Benachrichtigungen</string>
     <string name="ntfy_settings_explainer">Verbinde deinen eigenen ntfy-Server für optionale AirTag-Warnungen. Tether stellt keinen ntfy-Dienst bereit und betreibt keinen.</string>
     <string name="ntfy_enable_airtag_alerts">ntfy für AirTag-Warnungen aktivieren</string>
-    <string name="ntfy_enable_explainer">Standardmäßig aus. Teste die Verbindung, bevor du die Zustellung aktivierst. Die Zustellung von AirTag-Ereignissen wird separat eingerichtet.</string>
+    <string name="ntfy_enable_explainer">Standardmäßig aus. Wenn aktiviert, sendet Tether den AirTag-Namen, die relative Zeit seit dem letzten Empfang und den Alarmzeitpunkt an diesen Server und dieses Thema. Lokale Alarme funktionieren weiter, wenn ntfy fehlschlägt. Fehlgeschlagene Anfragen werden nicht wiederholt.</string>
     <string name="ntfy_topic">Thema</string>
     <string name="ntfy_clear_saved_token">Gespeichertes Token löschen</string>
     <string name="ntfy_send_test">Testbenachrichtigung senden</string>
@@ -451,4 +451,6 @@ Wenn Apple die Anfrage lediglich abgelehnt hat, lohnt es sich, zu warten und es 
     <string name="ntfy_test_failed_dns">Der Servername wurde nicht gefunden. Prüfe Adresse und Netzwerk.</string>
     <string name="ntfy_test_failed_tls">Die sichere Verbindung ist fehlgeschlagen. Prüfe das Serverzertifikat und die Uhr dieses Telefons.</string>
     <string name="ntfy_test_failed_network">Die Benachrichtigung konnte nicht gesendet werden. Prüfe Adresse und Netzwerk und versuche es erneut.</string>
+    <string name="ntfy_left_behind_title">AirTag wurde möglicherweise zurückgelassen</string>
+    <string name="ntfy_left_behind_message">%1$s wurde möglicherweise zurückgelassen. Zuletzt gehört: %2$s.</string>
 </resources>

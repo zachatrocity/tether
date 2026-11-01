@@ -428,7 +428,7 @@ Si Apple a simplement refusé la requête, il vaut mieux attendre et réessayer.
     <string name="ntfy_settings_title">Notifications AirTag avec ntfy</string>
     <string name="ntfy_settings_explainer">Connectez votre propre serveur ntfy pour recevoir des alertes AirTag facultatives. Tether ne fournit ni n’exploite aucun service ntfy.</string>
     <string name="ntfy_enable_airtag_alerts">Activer ntfy pour les alertes AirTag</string>
-    <string name="ntfy_enable_explainer">Désactivé par défaut. Testez la connexion avant d’activer l’envoi. L’envoi des événements AirTag se configure séparément.</string>
+    <string name="ntfy_enable_explainer">Désactivé par défaut. Une fois activé, Tether envoie le nom de l’AirTag, le temps relatif depuis sa dernière détection et l’heure de l’alerte à ce serveur et à ce sujet. Les alertes locales continuent de fonctionner si ntfy échoue. Les requêtes échouées ne sont pas réessayées.</string>
     <string name="ntfy_topic">Sujet</string>
     <string name="ntfy_clear_saved_token">Effacer le jeton enregistré</string>
     <string name="ntfy_send_test">Envoyer une notification de test</string>
@@ -451,4 +451,6 @@ Si Apple a simplement refusé la requête, il vaut mieux attendre et réessayer.
     <string name="ntfy_test_failed_dns">Le nom du serveur est introuvable. Vérifiez l’adresse et le réseau.</string>
     <string name="ntfy_test_failed_tls">La connexion sécurisée a échoué. Vérifiez le certificat du serveur et l’heure de ce téléphone.</string>
     <string name="ntfy_test_failed_network">La notification n’a pas pu être envoyée. Vérifiez l’adresse et le réseau, puis réessayez.</string>
+    <string name="ntfy_left_behind_title">Un AirTag a peut-être été oublié</string>
+    <string name="ntfy_left_behind_message">%1$s a peut-être été oublié. Dernière détection : %2$s.</string>
 </resources>

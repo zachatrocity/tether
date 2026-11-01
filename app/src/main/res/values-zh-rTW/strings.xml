@@ -428,7 +428,7 @@
     <string name="ntfy_settings_title">AirTag ntfy 通知</string>
     <string name="ntfy_settings_explainer">連接你自己的 ntfy 伺服器以接收選用的 AirTag 提醒。Tether 不提供或營運 ntfy 服務。</string>
     <string name="ntfy_enable_airtag_alerts">為 AirTag 提醒啟用 ntfy</string>
-    <string name="ntfy_enable_explainer">預設關閉。啟用傳送前請先測試連線。AirTag 事件傳送需另外設定。</string>
+    <string name="ntfy_enable_explainer">預設關閉。啟用後，Tether 會將 AirTag 標籤、距上次偵測的相對時間和提醒時間傳送到此伺服器和主題。即使 ntfy 傳送失敗，本機提醒仍會正常運作。失敗的請求不會重試。</string>
     <string name="ntfy_topic">主題</string>
     <string name="ntfy_clear_saved_token">清除已儲存的權杖</string>
     <string name="ntfy_send_test">傳送測試通知</string>
@@ -451,4 +451,6 @@
     <string name="ntfy_test_failed_dns">找不到伺服器名稱。請檢查位址和網路。</string>
     <string name="ntfy_test_failed_tls">安全連線失敗。請檢查伺服器憑證和本機時間。</string>
     <string name="ntfy_test_failed_network">無法傳送通知。請檢查位址和網路後再試一次。</string>
+    <string name="ntfy_left_behind_title">AirTag 可能已遺留</string>
+    <string name="ntfy_left_behind_message">%1$s 可能已遺留。上次偵測：%2$s。</string>
 </resources>
