@@ -69,41 +69,41 @@ public class NtfySettingsScreenTest {
 
     @Test
     public void deliveryIsDisabledByDefaultAndInvalidConfigurationCannotEnableIt() {
-        onView(withId(R.id.ntfy_enabled)).check(matches(isNotChecked())).perform(click());
-        onView(withText(R.string.ntfy_server_required)).check(matches(isDisplayed()));
-        onView(withText(R.string.ntfy_enable_needs_configuration)).check(matches(isDisplayed()));
+        onView(withId(R.id.ntfy_enabled)).perform(scrollTo()).check(matches(isNotChecked())).perform(click());
+        onView(withText(R.string.ntfy_server_required)).perform(scrollTo()).check(matches(isDisplayed()));
+        onView(withText(R.string.ntfy_enable_needs_configuration)).perform(scrollTo()).check(matches(isDisplayed()));
 
-        onView(withId(R.id.ntfy_server_url)).perform(replaceText("file:///private/topic"));
-        onView(withId(R.id.ntfy_topic)).perform(replaceText("family"), closeSoftKeyboard());
-        onView(withId(R.id.ntfy_enabled)).perform(click());
-        onView(withText(R.string.ntfy_server_invalid)).check(matches(isDisplayed()));
+        onView(withId(R.id.ntfy_server_url)).perform(scrollTo(), replaceText("file:///private/topic"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_topic)).perform(scrollTo(), replaceText("family"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_enabled)).perform(scrollTo(), click());
+        onView(withText(R.string.ntfy_server_invalid)).perform(scrollTo()).check(matches(isDisplayed()));
 
-        onView(withId(R.id.ntfy_server_url)).perform(replaceText("https://ntfy.example/proxy"));
-        onView(withId(R.id.ntfy_enabled)).perform(click()).check(matches(isChecked()));
+        onView(withId(R.id.ntfy_server_url)).perform(scrollTo(), replaceText("https://ntfy.example/proxy"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_enabled)).perform(scrollTo(), click()).check(matches(isChecked()));
         assertTrue(new NtfySettings(this.context).isEnabled());
 
-        onView(withId(R.id.ntfy_enabled)).perform(click()).check(matches(isNotChecked()));
+        onView(withId(R.id.ntfy_enabled)).perform(scrollTo(), click()).check(matches(isNotChecked()));
         assertFalse(new NtfySettings(this.context).isEnabled());
     }
 
     @Test
     public void httpAddressWarnsThatTokenAndMessageAreUnencrypted() {
-        onView(withId(R.id.ntfy_server_url)).perform(replaceText("http://192.168.1.4:8090"));
+        onView(withId(R.id.ntfy_server_url)).perform(scrollTo(), replaceText("http://192.168.1.4:8090"), closeSoftKeyboard());
 
-        onView(withText(R.string.ntfy_http_warning)).check(matches(isDisplayed()));
+        onView(withText(R.string.ntfy_http_warning)).perform(scrollTo()).check(matches(isDisplayed()));
     }
 
     @Test
     public void savedTokenIsEncryptedButNeverPutBackIntoTheFieldAfterReload() {
-        onView(withId(R.id.ntfy_server_url)).perform(replaceText("https://ntfy.example"));
-        onView(withId(R.id.ntfy_topic)).perform(replaceText("family"));
+        onView(withId(R.id.ntfy_server_url)).perform(scrollTo(), replaceText("https://ntfy.example"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_topic)).perform(scrollTo(), replaceText("family"), closeSoftKeyboard());
         onView(withId(R.id.ntfy_access_token))
-                .perform(replaceText("secret-token"), closeSoftKeyboard());
+                .perform(scrollTo(), replaceText("secret-token"), closeSoftKeyboard());
 
         this.scenario.recreate();
 
         onView(withId(R.id.ntfy_access_token)).check(matches(withText("")));
-        onView(withText(R.string.ntfy_token_saved_redacted)).check(matches(isDisplayed()));
+        onView(withText(R.string.ntfy_token_saved_redacted)).perform(scrollTo()).check(matches(isDisplayed()));
         assertEquals("secret-token", new NtfySettings(this.context).getAccessToken());
     }
 
@@ -126,12 +126,12 @@ public class NtfySettingsScreenTest {
 
         onView(withId(R.id.ntfy_test)).perform(scrollTo(), click());
         assertTrue(started.await(5, TimeUnit.SECONDS));
-        onView(withText(R.string.ntfy_test_sending)).check(matches(isDisplayed()));
-        onView(withId(R.id.ntfy_test_progress)).check(matches(isDisplayed()));
+        onView(withText(R.string.ntfy_test_sending)).perform(scrollTo()).check(matches(isDisplayed()));
+        onView(withId(R.id.ntfy_test_progress)).perform(scrollTo()).check(matches(isDisplayed()));
 
         finish.countDown();
         Eventually.check(() -> onView(withText(R.string.ntfy_test_success))
-                .check(matches(isDisplayed())));
+                .perform(scrollTo()).check(matches(isDisplayed())));
     }
 
     @Test
@@ -144,7 +144,7 @@ public class NtfySettingsScreenTest {
         onView(withId(R.id.ntfy_test)).perform(scrollTo(), click());
 
         Eventually.check(() -> onView(withText(R.string.ntfy_test_failed_auth))
-                .check(matches(isDisplayed())));
+                .perform(scrollTo()).check(matches(isDisplayed())));
     }
 
     @Test
@@ -205,8 +205,8 @@ public class NtfySettingsScreenTest {
     }
 
     private void enterCompleteConfiguration() {
-        onView(withId(R.id.ntfy_server_url)).perform(replaceText("https://ntfy.example"));
-        onView(withId(R.id.ntfy_topic)).perform(replaceText("family"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_server_url)).perform(scrollTo(), replaceText("https://ntfy.example"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_topic)).perform(scrollTo(), replaceText("family"), closeSoftKeyboard());
     }
 
     private static String runShell(final String command) throws IOException {

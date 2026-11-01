@@ -878,6 +878,7 @@ Two more rules that came out of the same failures:
   `allOf(withClassName(endsWith("ListMenuItemView")), hasDescendant(withText(…)))`. Pair it with
   a positive case using the same matcher, or you cannot tell a correct disabled item from a
   matcher aimed at nothing. `ArrangingTheTagListTest` does both.
+- **Scroll to controls and result text inside scrollable settings forms before interacting or asserting visibility.** Extra validation/help text and large-font settings can push an otherwise visible view below the viewport. Close the keyboard between fields; a visibility retry alone cannot scroll an off-screen result into view. The ntfy emulator failures exposed both cases.
 - **`replaceText`, not `typeText`, for any field that moves focus as it fills.** The 2FA code
   boxes and the bundle passcode groups both advance when full, and Espresso's per-character
   typing fails the moment the field it started on stops being focused. It is also the case
