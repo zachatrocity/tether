@@ -83,8 +83,8 @@ saved report, and no report. The wording always names the evidence source and ma
 not current; cached rows remain visible while data is loading or an account is disconnected.
 
 The floating menu on Family Overview and Map links to Family Overview, Map, Report history,
-Add AirTag, and Settings. Family Overview also provides direct Map, Report history, and Add
-AirTag actions.
+Add AirTag, and Settings. Family Overview keeps Map as its direct floating action; Report
+history and Add AirTag remain available from the menu.
 
 Family profiles are stored only in the app database. Upgrading creates no people or associations
 and does not rewrite imported AirTags, account state, tag settings, or saved reports. Profile

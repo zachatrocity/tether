@@ -14,10 +14,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,8 +29,10 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 import dev.wander.android.opentagviewer.R;
+import dev.wander.android.opentagviewer.data.model.BeaconInformation;
 
 /** Fixed-size light and dark renders of the approved Home composition. */
 @RunWith(AndroidJUnit4.class)
@@ -55,14 +54,22 @@ public class FamilyOverviewLayoutTest {
                 dark.expectedMenuSize, dark.menuSize);
     }
 
+    @Test
+    public void oneAirTagHasNoTrailingDivider() {
+        final RecyclerView rows = new RecyclerView(this.themedContext(false));
+        final FamilyOverviewAdapter adapter = new FamilyOverviewAdapter(value -> {}, row -> {});
+        adapter.replaceWith(Arrays.asList(this.airTag("only", "Mina", "Backpack AirTag")));
+
+        final RecyclerView.ViewHolder holder = adapter.onCreateViewHolder(
+                rows, adapter.getItemViewType(0));
+        adapter.onBindViewHolder(holder, 0);
+
+        assertEquals("a one-item list rendered a trailing divider", GONE,
+                holder.itemView.findViewById(R.id.family_row_divider).getVisibility());
+    }
+
     private Rendered render(final boolean night, final String name) throws IOException {
-        final Context base = getInstrumentation().getTargetContext();
-        final Configuration configuration = new Configuration(base.getResources().getConfiguration());
-        configuration.uiMode = (configuration.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
-                | (night ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
-        final Context configured = base.createConfigurationContext(configuration);
-        final Context themed = new ContextThemeWrapper(
-                configured, R.style.Theme_OpenTagViewer_GenericGreyishActivity);
+        final Context themed = this.themedContext(night);
 
         final View root = LayoutInflater.from(themed)
                 .inflate(R.layout.activity_family_overview, null, false);
@@ -72,7 +79,7 @@ public class FamilyOverviewLayoutTest {
 
         final RecyclerView rows = root.findViewById(R.id.family_rows);
         rows.setLayoutManager(new LinearLayoutManager(themed));
-        rows.setAdapter(new PreviewRows());
+        rows.setAdapter(this.previewRows());
 
         root.measure(
                 View.MeasureSpec.makeMeasureSpec(WIDTH_PX, View.MeasureSpec.EXACTLY),
@@ -80,17 +87,33 @@ public class FamilyOverviewLayoutTest {
         root.layout(0, 0, WIDTH_PX, HEIGHT_PX);
         final View scrollingContent = root.findViewById(R.id.family_overview_scroll);
         final View mapControl = root.findViewById(R.id.family_open_map);
-        assertTrue(name + " lets scrolling content run behind the floating map control",
-                scrollingContent.getBottom() <= mapControl.getTop());
+        assertTrue(name + " reserves a full-width region below the scrolling surface",
+                scrollingContent.getBottom() > mapControl.getTop());
+        assertTrue(name + " cannot scroll its final row clear of the floating Map control",
+                scrollingContent.getPaddingBottom()
+                        >= scrollingContent.getBottom() - mapControl.getTop());
 
+        final RecyclerView.ViewHolder firstHolder =
+                rows.findViewHolderForAdapterPosition(0);
+        final RecyclerView.ViewHolder secondHolder =
+                rows.findViewHolderForAdapterPosition(1);
         final RecyclerView.ViewHolder finalHolder =
                 rows.findViewHolderForAdapterPosition(3);
+        assertNotNull(name + " did not lay out the first compact row", firstHolder);
+        assertNotNull(name + " did not lay out the second compact row", secondHolder);
         assertNotNull(name + " did not lay out the final compact row", finalHolder);
+        assertEquals(name + " lost the divider between adjacent AirTag rows", VISIBLE,
+                firstHolder.itemView.findViewById(R.id.family_row_divider).getVisibility());
+        assertEquals(name + " rendered a divider before a section header", GONE,
+                secondHolder.itemView.findViewById(R.id.family_row_divider).getVisibility());
+
         final View finalRow = finalHolder.itemView;
         final View evidence = finalRow.findViewById(R.id.family_row_evidence);
         final View divider = finalRow.findViewById(R.id.family_row_divider);
-        assertTrue(name + " lets wrapped evidence collide with its divider",
+        assertTrue(name + " lets wrapped evidence escape its row boundary",
                 evidence.getBottom() <= divider.getTop());
+        assertEquals(name + " rendered a divider after the final AirTag row",
+                GONE, divider.getVisibility());
 
         final Bitmap bitmap = Bitmap.createBitmap(WIDTH_PX, HEIGHT_PX, Bitmap.Config.ARGB_8888);
         final Canvas canvas = new Canvas(bitmap);
@@ -105,6 +128,39 @@ public class FamilyOverviewLayoutTest {
         final int expectedMenuSize = Math.round(
                 58 * root.getResources().getDisplayMetrics().density);
         return new Rendered(surface, menu.getMeasuredWidth(), expectedMenuSize);
+    }
+
+    private Context themedContext(final boolean night) {
+        final Context base = getInstrumentation().getTargetContext();
+        final Configuration configuration =
+                new Configuration(base.getResources().getConfiguration());
+        configuration.uiMode = (configuration.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
+                | (night ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
+        return new ContextThemeWrapper(base.createConfigurationContext(configuration),
+                R.style.Theme_OpenTagViewer_GenericGreyishActivity);
+    }
+
+    private FamilyOverviewAdapter previewRows() {
+        final FamilyOverviewAdapter adapter = new FamilyOverviewAdapter(value -> {}, row -> {});
+        adapter.replaceWith(Arrays.asList(
+                this.airTag("mina", "Mina", "Backpack AirTag"),
+                this.airTag("evan", "Evan", "Bike AirTag"),
+                FamilyOverviewRow.sectionHeader("Unassigned AirTags"),
+                this.airTag(null, "Unassigned", "Keys AirTag")));
+        return adapter;
+    }
+
+    private FamilyOverviewRow airTag(
+            final String profileId, final String personName, final String airTagName) {
+        return FamilyOverviewRow.airTag(
+                profileId,
+                personName,
+                BeaconInformation.builder()
+                        .beaconId(airTagName)
+                        .originalName(airTagName)
+                        .build(),
+                null,
+                null);
     }
 
     private void write(final Bitmap bitmap, final String name) throws IOException {
@@ -135,52 +191,4 @@ public class FamilyOverviewLayoutTest {
         }
     }
 
-    private static final class PreviewRows extends RecyclerView.Adapter<PreviewHolder> {
-        private static final String[][] ROWS = {
-                {"Mina", "Backpack AirTag", "Nearby now", "This phone heard the AirTag"},
-                {"Evan", "Bike AirTag", "Last report 14 minutes ago", "Apple network report · accuracy ~35 m"},
-                {"", "", "", ""},
-                {"Unassigned", "Keys AirTag", "Last report 3 hours ago · not current", "Near Cedar School · Apple network report · accuracy ~80 m"}
-        };
-
-        @Override
-        public int getItemViewType(final int position) {
-            return position == 2 ? 1 : 0;
-        }
-
-        @NonNull
-        @Override
-        public PreviewHolder onCreateViewHolder(
-                @NonNull final ViewGroup parent, final int viewType) {
-            final int layout = viewType == 1
-                    ? R.layout.family_overview_section_header : R.layout.family_overview_row;
-            return new PreviewHolder(LayoutInflater.from(parent.getContext())
-                    .inflate(layout, parent, false));
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull final PreviewHolder holder, final int position) {
-            if (position == 2) {
-                ((TextView) holder.itemView.findViewById(R.id.family_section_title))
-                        .setText(R.string.family_unassigned_airtags);
-                return;
-            }
-            final String[] row = ROWS[position];
-            ((TextView) holder.itemView.findViewById(R.id.family_row_person)).setText(row[0]);
-            ((TextView) holder.itemView.findViewById(R.id.family_row_airtag)).setText(row[1]);
-            ((TextView) holder.itemView.findViewById(R.id.family_row_freshness)).setText(row[2]);
-            ((TextView) holder.itemView.findViewById(R.id.family_row_evidence)).setText(row[3]);
-        }
-
-        @Override
-        public int getItemCount() {
-            return ROWS.length;
-        }
-    }
-
-    private static final class PreviewHolder extends RecyclerView.ViewHolder {
-        PreviewHolder(final View view) {
-            super(view);
-        }
-    }
 }

@@ -131,8 +131,6 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
         this.findViewById(R.id.family_navigation_menu)
                 .setOnClickListener(this::showNavigationMenu);
         this.findViewById(R.id.family_open_map).setOnClickListener(view -> this.openMap());
-        this.findViewById(R.id.family_add_airtag).setOnClickListener(view -> this.openAddAirTag());
-        this.findViewById(R.id.family_reports).setOnClickListener(view -> this.openReports());
 
         this.getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override

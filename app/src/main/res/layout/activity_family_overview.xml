@@ -13,7 +13,7 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:layout_marginBottom="@dimen/family_overview_bottom_control_height">
+        android:paddingBottom="@dimen/family_overview_map_clearance">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -199,41 +199,6 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/family_quick_actions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/family_add_airtag"
-                    style="@style/Widget.Material3.Button"
-                    android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_weight="1"
-                    android:text="@string/add_airtag"
-                    android:textSize="15sp"
-                    app:cornerRadius="17dp"
-                    app:icon="@drawable/findmy_accessory"
-                    app:iconGravity="textStart"
-                    app:iconSize="22dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/family_reports"
-                    style="@style/Widget.Material3.Button.TonalButton"
-                    android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_marginStart="10dp"
-                    android:layout_weight="1"
-                    android:text="@string/reports"
-                    android:textSize="15sp"
-                    app:cornerRadius="17dp"
-                    app:icon="@drawable/history_24px"
-                    app:iconGravity="textStart"
-                    app:iconSize="22dp" />
-            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
