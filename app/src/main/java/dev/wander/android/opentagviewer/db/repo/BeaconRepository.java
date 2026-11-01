@@ -849,6 +849,28 @@ public class BeaconRepository {
     }
 
     /**
+     * Every recognisable last sighting, keyed by AirTag id, for list screens which would
+     * otherwise issue one SQLite query per row.
+     */
+    public Observable<Map<String, LastSightingData>> getLastSightingsForAll() {
+        return Observable.fromCallable(() -> {
+            final Map<String, LastSightingData> sightings = new HashMap<>();
+            for (final LastBleSighting row : db.lastBleSightingDao().getAll()) {
+                try {
+                    sightings.put(row.beaconId, new LastSightingData(
+                            row.heardAt,
+                            FindMyAdvertisement.BatteryLevel.valueOf(row.batteryLevel),
+                            row.statusByte));
+                } catch (final IllegalArgumentException e) {
+                    Log.w(TAG, "Ignoring an unrecognised stored battery level '"
+                            + row.batteryLevel + "' for beaconId=" + row.beaconId);
+                }
+            }
+            return sightings;
+        }).subscribeOn(Schedulers.io());
+    }
+
+    /**
      * Persist a {@link FetchResult} from {@code PythonAppleService}: location reports
      * go to the cache (delegating to {@link #storeToLocationCache}), and the freshly
      * serialized {@code accessory_json} per beacon (which now carries the rolling-key

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_family"
+        android:title="@string/family_overview" />
+    <item
+        android:id="@+id/navigation_map"
+        android:title="@string/title_activity_maps" />
+    <item
+        android:id="@+id/navigation_reports"
+        android:title="@string/report_history" />
+    <item
+        android:id="@+id/navigation_add_airtag"
+        android:title="@string/add_airtag" />
+    <item
+        android:id="@+id/navigation_settings"
+        android:title="@string/settings" />
+    <item
+        android:id="@+id/navigation_export_logs"
+        android:title="@string/export_logs"
+        android:visible="false" />
+</menu>

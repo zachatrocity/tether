@@ -34,7 +34,7 @@ import org.junit.runner.RunWith;
 import dev.wander.android.opentagviewer.AppleLoginActivity;
 import dev.wander.android.opentagviewer.DeviceStateGuard;
 import dev.wander.android.opentagviewer.Eventually;
-import dev.wander.android.opentagviewer.MapsActivity;
+import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.anisette.FakeAnisetteSource;
 import dev.wander.android.opentagviewer.db.datastore.UserAuthDataStore;
@@ -95,10 +95,10 @@ public class AfreshSignInIsNeverOfferedTheUpgradeTest {
         AppDependencies.replaceAuthService(this.apple);
         AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
 
-        // The map is answered at the door: it needs Play Services the managed device has not
-        // got, and what is under test finished before it would have started.
+        // Home is answered at the door because the behavior under test finishes before its
+        // database-backed UI starts.
         Intents.init();
-        intending(hasComponent(MapsActivity.class.getName()))
+        intending(hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
     }
 
@@ -184,9 +184,9 @@ public class AfreshSignInIsNeverOfferedTheUpgradeTest {
                 .check(matches(isDisplayed())));
         onView(withId(R.id.twofactorauth_textinput_1)).perform(replaceText(CODE));
 
-        // The sign-in is finished when it hands over to the map, and not before - the settings
-        // are written on the way there.
-        Eventually.check(() -> intended(hasComponent(MapsActivity.class.getName())));
+        // The sign-in is finished when it hands over to Home, and not before - the settings are
+        // written on the way there.
+        Eventually.check(() -> intended(hasComponent(FamilyOverviewActivity.class.getName())));
     }
 
     private UserSettings storedSettings() {

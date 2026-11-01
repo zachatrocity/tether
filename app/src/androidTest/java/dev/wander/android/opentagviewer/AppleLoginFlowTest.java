@@ -95,19 +95,17 @@ public class AppleLoginFlowTest {
         AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
 
         Intents.init();
-        // The map is the end of this flow and the point of reaching it, but it needs Play
-        // Services, which the managed test device does not have. Stub it: arriving there is
-        // what these tests assert, not what it does next.
-        intending(hasComponent(MapsActivity.class.getName()))
+        // Family Overview is the end of this flow. Stub it so these tests stay about sign-in;
+        // the database-backed Home journey has its own instrumented coverage.
+        intending(hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
     }
 
     @After
     public void putTheRealOnesBack() {
         // The screen goes down before the stubbing does. Released first, a sign-in still
-        // finishing would have its intent escape the stub and really start MapsActivity -
-        // which needs Play Services the test device has not got, and which then sits on top
-        // of whatever the next test launches.
+        // finishing would have its intent escape the stub and really start FamilyOverviewActivity,
+        // leaving Home on top of whatever the next test launches.
         if (this.scenario != null) {
             this.scenario.close();
         }
@@ -116,7 +114,7 @@ public class AppleLoginFlowTest {
 
         // Cleared on the way out as well as on the way in. Most of these tests finish a
         // sign-in, which stores a session, and the next test's screen would then redirect
-        // straight to the map before it could be driven anywhere.
+        // straight to Home before it could be driven anywhere.
         getInstrumentation().waitForIdleSync();
         signEverybodyOut();
         this.deviceState.restore();
@@ -179,7 +177,7 @@ public class AppleLoginFlowTest {
 
         Eventually.check(() -> assertEquals("the code has to reach Apple exactly as typed",
                 CODE, apple.submittedCode()));
-        Eventually.check(() -> intended(hasComponent(MapsActivity.class.getName())));
+        Eventually.check(() -> intended(hasComponent(FamilyOverviewActivity.class.getName())));
     }
 
     /**
@@ -250,7 +248,7 @@ public class AppleLoginFlowTest {
         launch();
         signIn();
 
-        Eventually.check(() -> intended(hasComponent(MapsActivity.class.getName())));
+        Eventually.check(() -> intended(hasComponent(FamilyOverviewActivity.class.getName())));
         assertEquals("nothing should have asked for a code",
                 0, apple.timesCalled("requestCode"));
     }
