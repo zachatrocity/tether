@@ -82,6 +82,7 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="${appLabel}"
         android:localeConfig="@xml/locales_config"
@@ -193,6 +194,12 @@
             android:exported="false"
             android:label="@string/settings"
             android:theme="@style/Theme.OpenTagViewer.GenericGreyishActivity" />
+        <activity
+            android:name=".FamilyOverviewActivity"
+            android:exported="false"
+            android:label="@string/family_overview"
+            android:theme="@style/Theme.OpenTagViewer.GenericGreyishActivity"
+            android:screenOrientation="portrait" />
         <!--
             To add your Maps API key to this project:
             1. Open the root project's secrets.properties file

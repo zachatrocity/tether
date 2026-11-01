@@ -80,6 +80,13 @@ import android.os.Build;
 
 public class MyDevicesListActivity extends AppCompatActivity {
     private static final String TAG = MyDevicesListActivity.class.getSimpleName();
+    public static final String EXTRA_DESTINATION = "myDevicesDestination";
+    public static final int DESTINATION_MANAGE = 0;
+    public static final int DESTINATION_REPORT_HISTORY = 1;
+    public static final int DESTINATION_ADD_AIR_TAG = 2;
+
+    private int destination = DESTINATION_MANAGE;
+
 
     private BeaconRepository beaconRepo;
 
@@ -244,6 +251,15 @@ public class MyDevicesListActivity extends AppCompatActivity {
         }
 
         this.binding = DataBindingUtil.setContentView(this, R.layout.activity_my_devices_list);
+        this.destination = this.getIntent().getIntExtra(
+                EXTRA_DESTINATION, DESTINATION_MANAGE);
+        if (this.destination == DESTINATION_REPORT_HISTORY) {
+            this.binding.settingsTopToolbar.setPageTitle(this.getString(R.string.report_history));
+            this.binding.settingsTopToolbar.pageMenuButton.setVisibility(GONE);
+        } else if (this.destination == DESTINATION_ADD_AIR_TAG) {
+            this.binding.settingsTopToolbar.setPageTitle(this.getString(R.string.add_airtag));
+        }
+
         WindowPaddingUtil.insetForSystemBars(this.binding.getRoot());
         this.binding.setHandleClickBack(this::handleEndActivity);
 
@@ -295,6 +311,9 @@ public class MyDevicesListActivity extends AppCompatActivity {
 
         this.rememberWhetherTheAccountIsLinked();
         this.fetchDeviceInfoAndRender();
+        if (this.destination == DESTINATION_ADD_AIR_TAG) {
+            this.binding.settingsTopToolbar.pageMenuButton.post(this::showPageMenu);
+        }
     }
 
     @Override
@@ -423,6 +442,17 @@ public class MyDevicesListActivity extends AppCompatActivity {
     }
 
     private void onDeviceClicked(final BeaconInformation clickedDevice) {
+        if (this.destination == DESTINATION_REPORT_HISTORY) {
+            final Intent history = new Intent(this, HistoryViewActivity.class)
+                    .putExtra("beaconId", clickedDevice.getBeaconId());
+            final BeaconLocationReport location = this.locations.get(clickedDevice.getBeaconId());
+            if (location != null) {
+                history.putExtra("lon", location.getLongitude());
+                history.putExtra("lat", location.getLatitude());
+            }
+            this.startActivity(history);
+            return;
+        }
         Intent deviceInfoIntent = new Intent(this, DeviceInfoActivity.class);
         deviceInfoIntent.putExtra("beaconId", clickedDevice.getBeaconId());
         deviceInfoActivityLauncher.launch(deviceInfoIntent);
@@ -645,6 +675,12 @@ public class MyDevicesListActivity extends AppCompatActivity {
         // while it is not linked, refresh once it is.
         menu.getMenu().findItem(R.id.action_refresh_from_account)
                 .setVisible(Boolean.TRUE.equals(this.accountIsLinked));
+
+        if (this.destination == DESTINATION_ADD_AIR_TAG) {
+            menu.getMenu().findItem(R.id.action_add_openhaystack).setVisible(false);
+            menu.getMenu().findItem(R.id.action_add_google).setVisible(false);
+            menu.getMenu().findItem(R.id.action_import_history).setVisible(false);
+        }
 
         menu.setOnMenuItemClickListener(item -> {
             final int id = item.getItemId();

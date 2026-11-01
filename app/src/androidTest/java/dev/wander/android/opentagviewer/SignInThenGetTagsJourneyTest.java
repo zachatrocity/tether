@@ -66,11 +66,10 @@ import dev.wander.android.opentagviewer.util.android.AppCryptographyUtil;
  * second is the one nobody exercises by hand, because producing it means having an Apple account
  * with nothing in Find My.
  *
- * <p><b>The map is stubbed, and that is a real gap rather than a convenience.</b> Signing in ends
- * by starting {@code MapsActivity}, which needs Play Services that the {@code aosp-atd} image has
- * not got, so the intent is answered at the door and the journey resumes at the device list. What
- * is not covered here is therefore the map itself - the recorded next step for that is a fake
- * {@code IMapProvider}.
+ * <p><b>Family Overview is stubbed because this journey is about sign-in and import.</b> Signing
+ * in now lands on the database-backed Home screen. Its rows and navigation have a dedicated
+ * instrumented journey; answering that intent here keeps this test on the account and tag-import
+ * path it owns.
  *
  * <p>Paced with {@link TestPace}, so this is the pair to run with {@code slowMotion} when
  * somebody wants to watch the app work rather than read that it does.
@@ -107,7 +106,7 @@ public class SignInThenGetTagsJourneyTest {
         AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
 
         Intents.init();
-        intending(hasComponent(MapsActivity.class.getName()))
+        intending(hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
     }
 
@@ -250,9 +249,9 @@ public class SignInThenGetTagsJourneyTest {
      * And taking that offer hands the whole journey on to the file picker.
      *
      * <p><b>The list finishes itself, which looks like a bug and is not.</b> The picker and the
-     * code that fetches locations for whatever comes back both live on the map, so the request is
-     * passed back rather than duplicated - and the map is underneath in a real run. Here there is
-     * nothing underneath, because the map was stubbed at the door, so the stack simply empties.
+     * code that fetches locations for whatever comes back belong to the caller, so the request is
+     * passed back rather than duplicated. Here there is nothing underneath because Home was
+     * stubbed at the door, so the stack simply empties.
      *
      * <p>That is why this asserts the hand-off rather than looking for a screen: the first
      * version of this test expected the device list to still be there and failed with
@@ -347,9 +346,9 @@ public class SignInThenGetTagsJourneyTest {
         onView(withId(R.id.twofactorauth_textinput_1)).perform(replaceText(CODE));
         TestPace.afterAStep();
 
-        Eventually.check(() -> intended(hasComponent(MapsActivity.class.getName())));
+        Eventually.check(() -> intended(hasComponent(FamilyOverviewActivity.class.getName())));
 
-        // The sign-in screen finishes itself once the map is on its way. Closed here so the
+        // The sign-in screen finishes itself once Home is on its way. Closed here so the
         // device list is not launched on top of a screen that is still tearing down.
         this.scenario.close();
         this.scenario = null;

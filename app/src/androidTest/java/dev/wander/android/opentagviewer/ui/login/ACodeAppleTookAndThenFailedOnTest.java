@@ -35,7 +35,7 @@ import org.junit.runner.RunWith;
 import dev.wander.android.opentagviewer.AppleLoginActivity;
 import dev.wander.android.opentagviewer.Eventually;
 import dev.wander.android.opentagviewer.util.rx.ACodeAppleAlreadyTook;
-import dev.wander.android.opentagviewer.MapsActivity;
+import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.anisette.FakeAnisetteSource;
 import dev.wander.android.opentagviewer.db.AccountBeaconsForTests;
@@ -86,8 +86,7 @@ public class ACodeAppleTookAndThenFailedOnTest {
         AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
 
         Intents.init();
-        Intents.intending(IntentMatchers.hasComponent(
-                        MapsActivity.class.getName()))
+        Intents.intending(IntentMatchers.hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
 
         this.scenario = ActivityScenario.launch(AppleLoginActivity.class);

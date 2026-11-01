@@ -31,7 +31,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.format.DateUtils;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -50,6 +49,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 import dev.wander.android.opentagviewer.ui.importing.ExternalDeviceImporter;
 import dev.wander.android.opentagviewer.ui.compat.WindowPaddingUtil;
+import dev.wander.android.opentagviewer.ui.navigation.FloatingNavigationMenu;
 import dev.wander.android.opentagviewer.ui.importing.BundlePasscodeDialog;
 import dev.wander.android.opentagviewer.ui.importing.ImportOutcome;
 import dev.wander.android.opentagviewer.ui.importing.ImportedButNotLocatedDialog;
@@ -162,6 +162,8 @@ import android.graphics.Bitmap;
  * TODO: this whole thing is a bit of a godclass. Decouple it.
  */
 public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMapReadyCallback, IMapProvider.OnMapClickListener, IMapProvider.OnMarkerClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
+    public static final String EXTRA_START_AIR_TAG_IMPORT = "startAirTagImport";
+
     private static final String TAG = MapsActivity.class.getSimpleName();
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
@@ -215,6 +217,9 @@ public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMa
     private GoogleMap map; // 保留用于向后兼容，逐步迁移
 
     private ActivityMapsBinding binding;
+    private PopupMenu navigationPopup;
+    private boolean navigationMenuOpen;
+
 
     private BeaconRepository beaconRepo;
 
@@ -533,6 +538,18 @@ public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMa
         this.binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(this.binding.getRoot());
 
+        this.getOnBackPressedDispatcher().addCallback(this,
+                new androidx.activity.OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        if (navigationMenuOpen && navigationPopup != null) {
+                            navigationPopup.dismiss();
+                            return;
+                        }
+                        finish();
+                    }
+                });
+
         this.userSettingsRepo = new UserSettingsRepository(
                 UserSettingsDataStore.getInstance(this.getApplicationContext()));
 
@@ -603,7 +620,12 @@ public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMa
 
         // 初始化地图（注意：this.mapProvider 仅在 onMapReady 后赋值，避免初始化竞态）
         tempProvider.initialize(this, R.id.map, this);
+        if (savedInstanceState == null
+                && this.getIntent().getBooleanExtra(EXTRA_START_AIR_TAG_IMPORT, false)) {
+            this.binding.getRoot().post(this::handleImport);
+        }
     }
+
 
 
 
@@ -1069,45 +1091,44 @@ public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMa
                         error -> Log.e(TAG, "Looking again for " + beaconId + " failed", error));
     }
 
-    public void onClickMoreSettings(View view)
-    {
-        Log.d(TAG, "Global more button was clicked");
-        ImageButton bttn = findViewById(R.id.button_more_settings);
+    public void onClickMoreSettings(final View view) {
+        Log.d(TAG, "Global navigation button was clicked");
+        this.navigationPopup = FloatingNavigationMenu.show(
+                view,
+                FloatingNavigationMenu.Destination.MAP,
+                this::openDestination,
+                this.userSettings.getEnableDebugData() == Boolean.TRUE
+                        ? this::handleExportLogs
+                        : null);
+        this.navigationMenuOpen = true;
+        this.navigationPopup.setOnDismissListener(menu -> this.navigationMenuOpen = false);
+    }
 
-        var popupMenu = new PopupMenu(this, bttn);
-        popupMenu.getMenuInflater().inflate(R.menu.global_map_more_menu, popupMenu.getMenu());
-
-        // This item is conditionally visible (non-technical users probably don't need this)
-        MenuItem exportLogsItem = popupMenu.getMenu().findItem(R.id.export_logs);
-        UserSettings userSettings = this.getRefreshUserSettings();
-        final boolean shouldShowExport = userSettings.getEnableDebugData() != null && userSettings.getEnableDebugData();
-        exportLogsItem.setVisible(shouldShowExport);
-
-        popupMenu.setOnMenuItemClickListener(menuItem -> {
-            Log.d(TAG, "Menu option " + menuItem.getTitle() + " was selected");
-
-            final int itemId = menuItem.getItemId();
-
-            if (itemId == R.id.do_import) {
-                this.handleImport();
-            } else if (itemId == R.id.add_openhaystack) {
-                this.openKeysFileLauncher.launch(new String[]{"*/*"});
-            } else if (itemId == R.id.add_google) {
-                this.externalImporter.importFromGoogle();
-            } else if (itemId == R.id.settings) {
+    private void openDestination(final FloatingNavigationMenu.Destination destination) {
+        switch (destination) {
+            case FAMILY:
+                this.startActivity(new Intent(this, FamilyOverviewActivity.class)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+                break;
+            case REPORTS:
+                this.startActivity(new Intent(this, MyDevicesListActivity.class)
+                        .putExtra(MyDevicesListActivity.EXTRA_DESTINATION,
+                                MyDevicesListActivity.DESTINATION_REPORT_HISTORY));
+                break;
+            case ADD_AIR_TAG:
+                this.deviceListActivityLauncher.launch(
+                        new Intent(this, MyDevicesListActivity.class)
+                                .putExtra(MyDevicesListActivity.EXTRA_DESTINATION,
+                                        MyDevicesListActivity.DESTINATION_ADD_AIR_TAG));
+                break;
+            case SETTINGS:
                 this.showSettingsPage();
-            } else if (itemId == R.id.information) {
-                this.showInformationPage();
-            } else if (itemId == R.id.my_devices) {
-                this.showMyDevicesPage();
-            } else if (itemId == R.id.export_logs) {
-                this.handleExportLogs();
-            }
-
-            return true;
-        });
-
-        popupMenu.show();
+                break;
+            case MAP:
+            default:
+                break;
+        }
     }
 
     public void onClickMyLocation(View view) {
@@ -1203,13 +1224,6 @@ public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMa
                 .show();
     }
 
-    private void showInformationPage() {
-        Log.d(TAG, "Show information page");
-
-        // navigate to information page
-        Intent intent = new Intent(this, InformationActivity.class);
-        startActivity(intent);
-    }
 
     private void showSettingsPage() {
         Log.d(TAG, "Show settings page clicked");
@@ -1219,12 +1233,6 @@ public class MapsActivity extends AppCompatActivity implements IMapProvider.OnMa
         settingsEditActivityLauncher.launch(intent);
     }
 
-    private void showMyDevicesPage() {
-        Log.d(TAG, "Show my devices page clicked");
-
-        Intent intent = new Intent(this, MyDevicesListActivity.class);
-        deviceListActivityLauncher.launch(intent);
-    }
 
     private void onImportFilePicked(Intent data) {
         this.onImportFilePicked(data, null);

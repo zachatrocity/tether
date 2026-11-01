@@ -93,7 +93,7 @@ public class AcceptingTermsFlowTest {
         AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
 
         Intents.init();
-        intending(hasComponent(MapsActivity.class.getName()))
+        intending(hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
     }
 

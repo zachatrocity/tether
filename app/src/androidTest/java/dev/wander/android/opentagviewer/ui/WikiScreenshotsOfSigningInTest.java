@@ -30,7 +30,7 @@ import org.junit.runner.RunWith;
 
 import dev.wander.android.opentagviewer.AppleLoginActivity;
 import dev.wander.android.opentagviewer.Eventually;
-import dev.wander.android.opentagviewer.MapsActivity;
+import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.MyDevicesListActivity;
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.Shot;
@@ -99,9 +99,9 @@ public class WikiScreenshotsOfSigningInTest {
         AppDependencies.replaceAnisette(settings -> FakeAnisetteSource.ready());
 
         Intents.init();
-        // The map is where a finished sign-in lands, and it needs Play Services. Stubbed for the
-        // same reason AppleLoginFlowTest stubs it - reaching it is the claim, not what it draws.
-        intending(hasComponent(MapsActivity.class.getName()))
+        // Family Overview is where a finished sign-in lands. Stubbed so this screenshot class
+        // remains about the sign-in surfaces rather than the database-backed Home journey.
+        intending(hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
     }
 
@@ -187,7 +187,7 @@ public class WikiScreenshotsOfSigningInTest {
      *
      * <p><b>Every test here fails with {@code NoActivityResumedException} if a session exists</b>,
      * and the reason is nowhere near the failure: AppleLoginActivity finishes itself and starts
-     * the map when it finds one, the map is stubbed out here, and Espresso then reports that no
+     * Home when it finds one, Home is stubbed out here, and Espresso then reports that no
      * activity is resumed - which reads as a launch that did not happen rather than a screen that
      * declined to appear.
      *

@@ -258,7 +258,7 @@ public class AppleLoginActivity extends AppCompatActivity {
         var currentUser = this.userAuthRepo.getUserAuth().blockingFirst();
         if (currentUser.isPresent()) {
             this.finish();
-            Intent intent = new Intent(this, MapsActivity.class);
+            Intent intent = new Intent(this, FamilyOverviewActivity.class);
             startActivity(intent);
             return;
         }
@@ -1277,7 +1277,7 @@ public class AppleLoginActivity extends AppCompatActivity {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(() -> {
                     Log.i(TAG, "Retrieved login info after 2FA success and stored it successfully!");
-                    this.sendToMapActivity();
+                    this.sendToFamilyOverview();
                 }, error -> {
 
                     Log.e(TAG, "Error during auth data retrieval and storage after 2FA success", error);
@@ -1331,7 +1331,7 @@ public class AppleLoginActivity extends AppCompatActivity {
             .subscribe(() -> {
                 Log.i(TAG, "Retrieved login info without 2FA (already logged in!) and stored it successfully!");
                 //Toast.makeText(this, "Successfully logged in (no 2FA)", LENGTH_LONG).show();
-                this.sendToMapActivity();
+                this.sendToFamilyOverview();
             }, error -> {
                 Log.e(TAG, "Error during auth data retrieval and storage (when already logged in)", error);
                 // USER should retry. UI should actually allow him to do that.
@@ -1472,12 +1472,12 @@ public class AppleLoginActivity extends AppCompatActivity {
                 || Patterns.PHONE.matcher(input).matches());
     }
 
-    private void sendToMapActivity() {
+    private void sendToFamilyOverview() {
         this.recordHowThisSessionWasEstablished();
 
         this.model.resetUiState();
         this.finish();
-        Intent intent = new Intent(this, MapsActivity.class);
+        Intent intent = new Intent(this, FamilyOverviewActivity.class);
         startActivity(intent);
     }
 

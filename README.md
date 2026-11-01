@@ -70,14 +70,28 @@ when available.
 
 The name and icon express the intended family use. They do not broaden the upstream app's tracker compatibility or promise that every accessory works.
 
+## Family Overview
+
+After sign-in, Tether opens the Family Overview instead of the map. It groups AirTags under
+local, user-named family profiles and keeps AirTags without a valid profile in an explicit
+**Unassigned AirTags** section. Tap a row for that AirTag's details, or use the row's edit action
+to rename its profile or assign an unassigned AirTag.
+
+Each row distinguishes a recent sighting heard by this phone, a current saved report, a stale
+saved report, and no report. The wording always names the evidence source and marks stale data as
+not current; cached rows remain visible while data is loading or an account is disconnected.
+
+The floating menu on Family Overview and Map links to Family Overview, Map, Report history,
+Add AirTag, and Settings. Family Overview also provides direct Map, Report history, and Add
+AirTag actions.
+
+Family profiles are stored only in the app database. Upgrading creates no people or associations
+and does not rewrite imported AirTags, account state, tag settings, or saved reports. Profile
+data is not synced or shared.
+
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions and [branding/README.md](branding/README.md) for the Orbit artwork and reproducible asset generator. The source namespace stays upstream-compatible even though the installed package is `io.zachs.tether`.
-
-Family profiles are stored only in the app database. Profiles use user-chosen names and may
-group multiple existing AirTags; AirTags without a valid profile remain explicitly unassigned.
-Upgrading creates no people or associations and does not rewrite imported AirTags, account
-state, tag settings, or saved reports. Profile data is not synced or shared.
 
 The personal build workflow runs Python tests, JVM tests, and targeted Android emulator checks for login, native authentication-library loading, and installed branding. These are not a substitute for testing actual Apple account access and tag reports on your device.
 

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="112dp"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:paddingStart="12dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="12dp">
+
+    <ImageButton
+        android:id="@+id/family_row_edit_profile"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/ripple_background"
+        android:backgroundTint="?attr/colorSurfaceContainerHigh"
+        android:padding="13dp"
+        android:src="@drawable/edit_24px"
+        app:tint="?attr/colorPrimary"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:contentDescription="Edit profile" />
+
+    <TextView
+        android:id="@+id/family_row_person"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:fontFamily="@font/nunito_bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="18sp"
+        app:layout_constraintStart_toEndOf="@id/family_row_edit_profile"
+        app:layout_constraintEnd_toStartOf="@id/family_row_chevron"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Mina" />
+
+    <TextView
+        android:id="@+id/family_row_airtag"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="@id/family_row_person"
+        app:layout_constraintEnd_toEndOf="@id/family_row_person"
+        app:layout_constraintTop_toBottomOf="@id/family_row_person"
+        tools:text="Backpack AirTag" />
+
+    <ImageView
+        android:id="@+id/family_row_status_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginTop="10dp"
+        android:contentDescription="@null"
+        android:src="@drawable/circle_filled"
+        app:tint="?attr/colorPrimary"
+        app:layout_constraintStart_toStartOf="@id/family_row_person"
+        app:layout_constraintTop_toBottomOf="@id/family_row_airtag" />
+
+    <TextView
+        android:id="@+id/family_row_freshness"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:maxLines="2"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="13sp"
+        app:layout_constraintStart_toEndOf="@id/family_row_status_dot"
+        app:layout_constraintEnd_toStartOf="@id/family_row_chevron"
+        app:layout_constraintTop_toBottomOf="@id/family_row_airtag"
+        tools:text="Last report 3 hours ago · not current" />
+
+    <TextView
+        android:id="@+id/family_row_evidence"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="@id/family_row_person"
+        app:layout_constraintEnd_toStartOf="@id/family_row_chevron"
+        app:layout_constraintTop_toBottomOf="@id/family_row_freshness"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:text="Near Cedar School · Apple network report · accuracy ~80 m" />
+
+    <ImageView
+        android:id="@+id/family_row_chevron"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/ripple_background"
+        android:backgroundTint="?attr/colorSurfaceContainer"
+        android:contentDescription="@null"
+        android:padding="12dp"
+        android:src="@drawable/arrow_forward_24px"
+        app:tint="?attr/colorOnSurface"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginTop="11dp"
+        android:background="?attr/colorOutlineVariant"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -12,6 +12,9 @@ public interface LastBleSightingDao {
     @Query("SELECT * FROM LastBleSighting WHERE beacon_id = :beaconId")
     LastBleSighting getById(String beaconId);
 
+    @Query("SELECT * FROM LastBleSighting")
+    java.util.List<LastBleSighting> getAll();
+
     /**
      * Store this sighting, replacing whatever the tag last said.
      *

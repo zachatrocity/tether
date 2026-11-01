@@ -89,7 +89,7 @@ public class AppleLoginFallbackFlowTest {
                 FakeAnisetteSource.unavailable("Unable to resolve host apps.mzstatic.com"));
 
         Intents.init();
-        intending(hasComponent(MapsActivity.class.getName()))
+        intending(hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
     }
 
@@ -150,7 +150,7 @@ public class AppleLoginFallbackFlowTest {
 
         signIn();
 
-        Eventually.check(() -> intended(hasComponent(MapsActivity.class.getName())));
+        Eventually.check(() -> intended(hasComponent(FamilyOverviewActivity.class.getName())));
     }
 
     /**

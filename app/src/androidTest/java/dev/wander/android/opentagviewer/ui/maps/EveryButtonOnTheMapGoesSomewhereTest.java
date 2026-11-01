@@ -9,7 +9,7 @@ import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasAction;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasDataString;
-import static androidx.test.espresso.intent.matcher.IntentMatchers.hasType;
+import static androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra;
 import static androidx.test.espresso.matcher.RootMatchers.isPlatformPopup;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
@@ -36,8 +36,8 @@ import org.junit.runner.RunWith;
 import dev.wander.android.opentagviewer.DeviceInfoActivity;
 import dev.wander.android.opentagviewer.Eventually;
 import dev.wander.android.opentagviewer.HistoryViewActivity;
-import dev.wander.android.opentagviewer.InformationActivity;
 import dev.wander.android.opentagviewer.MapsActivity;
+import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.MyDevicesListActivity;
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.SettingsActivity;
@@ -91,13 +91,14 @@ public class EveryButtonOnTheMapGoesSomewhereTest {
         Intents.release();
     }
 
-    // ------------------------------------------------------------------ the overflow menu
+    // --------------------------------------------------------- the global navigation menu
 
     @Test
-    public void themenuOpensMyDevices() {
-        this.pickFromTheOverflow(R.string.my_devices);
+    public void theMenuOpensFamilyOverview() {
+        this.pickFromTheOverflow(R.string.family_overview);
 
-        Eventually.check(() -> intended(hasComponent(MyDevicesListActivity.class.getName())));
+        Eventually.check(() -> intended(
+                hasComponent(FamilyOverviewActivity.class.getName())));
     }
 
     @Test
@@ -108,32 +109,23 @@ public class EveryButtonOnTheMapGoesSomewhereTest {
     }
 
     @Test
-    public void themenuOpensTheInformationPage() {
-        this.pickFromTheOverflow(R.string.information);
-
-        Eventually.check(() -> intended(hasComponent(InformationActivity.class.getName())));
-    }
-
-    /**
-     * Import opens the system file picker, not a screen of this app's own.
-     *
-     * <p>Asserted on the action rather than a component for that reason: which application
-     * answers it is the platform's business and differs by device.
-     *
-     * <p><b>{@code GET_CONTENT}, not {@code OPEN_DOCUMENT}</b>, which is worth stating because
-     * the two look interchangeable and are not. {@code GET_CONTENT} asks for a copy of a file
-     * and is right here - the zip is read once at import and never again - while
-     * {@code OPEN_DOCUMENT} asks for a lasting handle to the original, which this app has no use
-     * for and would be asking the user to grant more than it needs. The log export next door
-     * uses {@code CREATE_DOCUMENT} for the same sort of reason, in the other direction.
-     */
-    @Test
-    public void themenuOpensTheFilePickerToImportAZip() {
-        this.pickFromTheOverflow(R.string.do_import);
+    public void theMenuOpensReportHistory() {
+        this.pickFromTheOverflow(R.string.report_history);
 
         Eventually.check(() -> intended(allOf(
-                hasAction(Intent.ACTION_GET_CONTENT),
-                hasType("application/zip"))));
+                hasComponent(MyDevicesListActivity.class.getName()),
+                hasExtra(MyDevicesListActivity.EXTRA_DESTINATION,
+                        MyDevicesListActivity.DESTINATION_REPORT_HISTORY))));
+    }
+
+    @Test
+    public void theMenuOpensAddAirTag() {
+        this.pickFromTheOverflow(R.string.add_airtag);
+
+        Eventually.check(() -> intended(allOf(
+                hasComponent(MyDevicesListActivity.class.getName()),
+                hasExtra(MyDevicesListActivity.EXTRA_DESTINATION,
+                        MyDevicesListActivity.DESTINATION_ADD_AIR_TAG))));
     }
 
     // ------------------------------------------------------------------ the tag card

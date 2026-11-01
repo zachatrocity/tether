@@ -90,7 +90,7 @@ public class ForceRemoteAnisetteAfterDeclineTest {
                 : FakeAnisetteSource.unavailable("a remote Anisette server is selected in Settings"));
 
         Intents.init();
-        intending(hasComponent(MapsActivity.class.getName()))
+        intending(hasComponent(FamilyOverviewActivity.class.getName()))
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
     }
 
@@ -143,7 +143,7 @@ public class ForceRemoteAnisetteAfterDeclineTest {
      *
      * <p>The whole point: the first attempt used local Anisette and was refused; the second must
      * present the server's identity instead, or nothing has changed. Asserted on what reached
-     * Python and what was stored, not merely on landing on the map.
+     * Python and what was stored, not merely on landing on Home.
      */
     @Test
     public void theRetryGoesThroughTheServerAndIsRecordedAsRemote() {
@@ -161,7 +161,7 @@ public class ForceRemoteAnisetteAfterDeclineTest {
 
         signInExpectingAnotherLoginCall();
 
-        Eventually.check(() -> intended(hasComponent(MapsActivity.class.getName())));
+        Eventually.check(() -> intended(hasComponent(FamilyOverviewActivity.class.getName())));
         Eventually.check(() -> assertNotNull("the server URL must reach Python", apple.serverUrlUsed()));
         assertTrue("a real URL, not a placeholder", apple.serverUrlUsed().startsWith("http"));
         assertTrue("the server should have been checked before letting anybody past",
