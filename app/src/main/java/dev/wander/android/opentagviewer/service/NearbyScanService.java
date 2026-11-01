@@ -36,7 +36,6 @@ import dev.wander.android.opentagviewer.db.repo.UserSettingsRepository;
 import dev.wander.android.opentagviewer.db.repo.model.UserSettings;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import android.text.format.DateUtils;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import dev.wander.android.opentagviewer.util.LeftBehind;
 import dev.wander.android.opentagviewer.util.LocalFixWorthKeeping;
@@ -128,37 +127,8 @@ public class NearbyScanService extends Service {
      */
     private static final long CHECK_INTERVAL_MS = 5_000L;
 
-    /** What is known about a tag right now: heard since when, and where it turned up. */
-    private static final class Presence {
-        private long lastHeardMs;
-
-        /**
-         * Where the phone was when this tag turned up, filled in just after the arrival is
-         * claimed rather than at construction.
-         *
-         * <p>Not final for that reason: reading a location is slow enough that it must not
-         * happen while {@code presence} is holding a lock, so the entry goes into the map first
-         * and the coordinates follow. A reader that catches the gap in between sees null, which
-         * is the same thing it sees when there is no fix at all, and is handled.
-         */
-        private Double appearedLatitude;
-        private Double appearedLongitude;
-        private boolean gone;
-
-        private Presence(final long lastHeardMs) {
-            this.lastHeardMs = lastHeardMs;
-        }
-    }
-
-    /**
-     * Per tag, when it was last heard and where this phone was then.
-     *
-     * <p>In memory rather than in the database, and lost on a restart on purpose: the rule is
-     * about a walk somebody is taking right now. A stale entry from before a reboot would fire
-     * as soon as the service came back somewhere else, which is the phone having moved rather
-     * than a tag having been left.
-     */
-    private final Map<String, Presence> presence = new ConcurrentHashMap<>();
+    /** Heard/gone state for this service lifetime; each gone transition is claimed once. */
+    private final LeftBehindTransitions transitions = new LeftBehindTransitions();
 
     private BeaconRepository beaconRepo;
 
@@ -202,6 +172,9 @@ public class NearbyScanService extends Service {
 
     /** Plays that sound once when a tag looks left behind. */
     private LeftBehindAlarm alarm;
+
+    /** Optional remote delivery, always scheduled after the local notification and alarm. */
+    private NtfyLeftBehindAlertDispatcher ntfyAlerts;
 
     /**
      * The addresses already derived for each tag, so a verification scan looks for the same ones
@@ -267,6 +240,7 @@ public class NearbyScanService extends Service {
                 new FusedPhoneLocation(this.getApplicationContext()));
         this.sightingPersister = new AccessorySightingPersister(this.beaconRepo);
         this.alarm = new LeftBehindAlarm(this.getApplicationContext());
+        this.ntfyAlerts = new NtfyLeftBehindAlertDispatcher(this.getApplicationContext());
         this.derivedAddresses =
                 new DerivedAddressStore(this.getApplicationContext().getFilesDir());
     }
@@ -309,6 +283,9 @@ public class NearbyScanService extends Service {
             // Nothing else would: the player holds no reference to the service, so a sounding
             // alarm would outlive the thing that started it.
             this.alarm.stop();
+        }
+        if (this.ntfyAlerts != null) {
+            this.ntfyAlerts.close();
         }
         super.onDestroy();
     }
@@ -443,32 +420,17 @@ public class NearbyScanService extends Service {
     private void noteHeard(final String beaconId) {
         final long now = System.currentTimeMillis();
 
-        // **The arrival is claimed atomically, and exactly one caller wins it.** This runs once
-        // per advertisement now rather than once a minute, so two arriving together both used
-        // to see "not present", and both then read a location and wrote a row for the same
-        // return. Checking and then putting is two steps; compute is one.
-        //
-        // The lambda stays trivial because it runs while the map holds a bin lock. Everything
-        // slow - the location, the database write - happens below, once, and only for whoever
-        // installed the new entry.
-        final Presence arrived = new Presence(now);
-        final boolean isTheOneWhoSawItReturn = this.presence.compute(beaconId, (id, existing) -> {
-            if (existing != null && !existing.gone) {
-                existing.lastHeardMs = now;
-                return existing;
-            }
-            return arrived;
-        }) == arrived;
-
-        if (!isTheOneWhoSawItReturn) {
+        // The transition object owns the atomic claim. Slow location and database work stays
+        // outside its map lock and runs only for the caller that observed the return.
+        final LeftBehindTransitions.Arrival arrived = this.transitions.noteHeard(beaconId, now);
+        if (arrived == null) {
             return;
         }
 
         final PhoneLocation.Fix fix = this.phoneLocation.lastKnown();
-
         if (fix != null) {
-            arrived.appearedLatitude = fix.getLatitude();
-            arrived.appearedLongitude = fix.getLongitude();
+
+            arrived.setAppearedAt(fix.getLatitude(), fix.getLongitude());
 
             this.beaconRepo.recordLocalSighting(beaconId, fix.getLatitude(), fix.getLongitude(),
                             fix.getAccuracyMetres(), 0, now)
@@ -516,18 +478,8 @@ public class NearbyScanService extends Service {
             return;
         }
 
-        final long escalateAfter = (long) (this.quietForMs * LISTEN_HARD_AFTER);
-
-        boolean somethingIsMissing = false;
-        for (final Map.Entry<String, Presence> entry : this.presence.entrySet()) {
-            if (!this.alertsOn.contains(entry.getKey()) || entry.getValue().gone) {
-                continue;
-            }
-            if (nowMs - entry.getValue().lastHeardMs >= escalateAfter) {
-                somethingIsMissing = true;
-                break;
-            }
-        }
+        final boolean somethingIsMissing = this.transitions.shouldListenHard(
+                this.alertsOn, nowMs, this.quietForMs, LISTEN_HARD_AFTER);
 
         if (somethingIsMissing == this.listeningHard) {
             return;
@@ -590,24 +542,8 @@ public class NearbyScanService extends Service {
         // one.
         this.listenAsHardAsAnythingMissingNeeds(now);
 
-        for (final Map.Entry<String, Presence> entry : this.presence.entrySet()) {
-            final Presence known = entry.getValue();
-
-            if (known.gone || now - known.lastHeardMs < this.quietForMs) {
-                continue;
-            }
-
-            // Quiet long enough to be worth checking. This is the second of the two edges, and
-            // the only other moment the position is worth reading.
-            known.gone = true;
-
-            if (!this.alertsOn.contains(entry.getKey())) {
-                // Still scanned for, still recorded - the owner has just not asked to be woken
-                // for this one, which is the default. Skipping the verification scan too, since
-                // nothing would be done with the answer.
-                continue;
-            }
-
+        for (final LeftBehindTransitions.GoneTransition transition
+                : this.transitions.claimGoneTransitions(this.alertsOn, now, this.quietForMs)) {
             // **A missing position must not swallow the alert.** It used to, left over from when
             // distance was half the rule; the verification scan decides now, and "your keys are
             // not with you" is worth saying whether or not the phone can say where. It also
@@ -616,9 +552,9 @@ public class NearbyScanService extends Service {
             // working on its own.
             final PhoneLocation.Fix here = this.phoneLocation.lastKnown();
             if (here != null) {
-                this.recordContactLost(entry.getKey(), known, here, now);
+                this.recordContactLost(transition, here, now);
             }
-            this.alertLeftBehind(entry.getKey(), known.lastHeardMs);
+            this.alertLeftBehind(transition.getBeaconId(), transition.getLastHeardMs());
         }
     }
 
@@ -635,11 +571,11 @@ public class NearbyScanService extends Service {
      * <p>Nothing is written when the phone has not moved: the tag going quiet on a desk beside
      * somebody is a radio gap, not a place worth recording.
      */
-    private void recordContactLost(final String beaconId, final Presence known,
+    private void recordContactLost(final LeftBehindTransitions.GoneTransition transition,
                                    final PhoneLocation.Fix here, final long nowMs) {
 
-        if (known.appearedLatitude != null && LocalFixWorthKeeping.metresBetween(
-                known.appearedLatitude, known.appearedLongitude,
+        if (transition.getAppearedLatitude() != null && LocalFixWorthKeeping.metresBetween(
+                transition.getAppearedLatitude(), transition.getAppearedLongitude(),
                 here.getLatitude(), here.getLongitude()) < LocalFixWorthKeeping.MOVED_METRES) {
             return;
         }
@@ -647,10 +583,10 @@ public class NearbyScanService extends Service {
         final long couldBeAnywhereWithin = here.getAccuracyMetres()
                 + Math.round((this.quietForMs / 1000.0) * WALKING_METRES_PER_SECOND);
 
-        this.beaconRepo.recordLocalSighting(beaconId, here.getLatitude(), here.getLongitude(),
-                        couldBeAnywhereWithin, 0, nowMs)
+        this.beaconRepo.recordLocalSighting(transition.getBeaconId(),
+                        here.getLatitude(), here.getLongitude(), couldBeAnywhereWithin, 0, nowMs)
                 .subscribe(written -> { }, error ->
-                        Log.w(TAG, "Could not record where contact with beaconId=" + beaconId
+                        Log.w(TAG, "Could not record where beaconId=" + transition.getBeaconId()
                                 + " was lost", error));
     }
 
@@ -697,12 +633,14 @@ public class NearbyScanService extends Service {
                 this, beaconId.hashCode(), open,
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
+        final String savedAirTagLabel = this.namesByBeaconId.get(beaconId);
+        final String localAirTagLabel = savedAirTagLabel == null ? beaconId : savedAirTagLabel;
+        final String remoteAirTagLabel = savedAirTagLabel == null ? "AirTag" : savedAirTagLabel;
         final CharSequence howLongAgo = DateUtils.getRelativeTimeSpanString(
                 lastHeardMs, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS);
 
         final Notification alert = new NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
-                .setContentTitle(this.getString(R.string.left_behind_title,
-                        this.namesByBeaconId.getOrDefault(beaconId, beaconId)))
+                .setContentTitle(this.getString(R.string.left_behind_title, localAirTagLabel))
                 .setContentText(this.getString(R.string.left_behind_text, howLongAgo))
                 .setSmallIcon(R.drawable.ic_launcher_monochrome)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -724,6 +662,10 @@ public class NearbyScanService extends Service {
         manager.notify(beaconId.hashCode(), alert);
 
         this.alarm.start(this.alarmSoundUri);
+
+        // Local-first by contract: remote I/O is not even queued until the notification is
+        // posted and the chosen alarm has started.
+        this.ntfyAlerts.dispatch(remoteAirTagLabel, howLongAgo.toString());
 
         if (this.alarm.isAlarmStreamSilent()) {
             // Worth saying out loud rather than leaving as a mystery: the alert did everything

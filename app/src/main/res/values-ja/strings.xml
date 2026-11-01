@@ -428,7 +428,7 @@ Appleが要求を拒否しただけなら、少し待ってからもう一度お
     <string name="ntfy_settings_title">AirTag の ntfy 通知</string>
     <string name="ntfy_settings_explainer">任意の AirTag 通知に自分の ntfy サーバーを接続します。Tether は ntfy サービスを提供、運用しません。</string>
     <string name="ntfy_enable_airtag_alerts">AirTag の通知に ntfy を使用</string>
-    <string name="ntfy_enable_explainer">初期設定ではオフです。配信を有効にする前に接続をテストしてください。AirTag イベントの配信は別途設定します。</string>
+    <string name="ntfy_enable_explainer">初期設定ではオフです。有効にすると、Tether は AirTag のラベル、最後に検出してからの相対時間、通知時刻をこのサーバーとトピックに送信します。ntfy が失敗してもローカル通知は動作します。失敗したリクエストは再試行されません。</string>
     <string name="ntfy_topic">トピック</string>
     <string name="ntfy_clear_saved_token">保存済みトークンを消去</string>
     <string name="ntfy_send_test">テスト通知を送信</string>
@@ -451,4 +451,6 @@ Appleが要求を拒否しただけなら、少し待ってからもう一度お
     <string name="ntfy_test_failed_dns">サーバー名が見つかりません。アドレスとネットワークを確認してください。</string>
     <string name="ntfy_test_failed_tls">安全な接続に失敗しました。サーバー証明書と端末の時刻を確認してください。</string>
     <string name="ntfy_test_failed_network">通知を送信できませんでした。アドレスとネットワークを確認して、再試行してください。</string>
+    <string name="ntfy_left_behind_title">AirTag を置き忘れた可能性があります</string>
+    <string name="ntfy_left_behind_message">%1$s を置き忘れた可能性があります。最後の検出：%2$s。</string>
 </resources>

@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import dev.wander.android.opentagviewer.Eventually;
 import dev.wander.android.opentagviewer.NtfySettingsActivity;
 import dev.wander.android.opentagviewer.R;
+import dev.wander.android.opentagviewer.service.NtfyLeftBehindAlertDispatcher;
 import dev.wander.android.opentagviewer.source.NtfyClient;
 import dev.wander.android.opentagviewer.source.NtfySettings;
 
@@ -98,6 +99,34 @@ public class NtfyEndpointSmokeTest {
         assertEquals(NtfyClient.TEST_TITLE, this.endpoint.headers.get("title"));
         assertEquals(NtfyClient.TEST_PRIORITY, this.endpoint.headers.get("priority"));
         assertEquals(NtfyClient.TEST_MESSAGE, this.endpoint.body);
+    }
+
+    @Test
+    public void enabledScreenConfigurationFeedsTheRealLeftBehindDispatcherOnce() throws Exception {
+        onView(withId(R.id.ntfy_server_url))
+                .perform(replaceText(this.endpoint.url() + "/reverse/proxy/"));
+        onView(withId(R.id.ntfy_topic)).perform(replaceText("family-alerts"));
+        onView(withId(R.id.ntfy_access_token))
+                .perform(replaceText("secret-token"), closeSoftKeyboard());
+        onView(withId(R.id.ntfy_enabled)).perform(scrollTo(), click());
+        assertTrue(new NtfySettings(this.context).isEnabled());
+
+        try (NtfyLeftBehindAlertDispatcher dispatcher =
+                     new NtfyLeftBehindAlertDispatcher(this.context)) {
+            dispatcher.dispatch("Backpack AirTag", "5 minutes ago");
+            assertTrue(this.endpoint.requestArrived.await(5, TimeUnit.SECONDS));
+        }
+
+        assertNull(this.endpoint.failure);
+        assertEquals(1, this.endpoint.requestCount);
+        assertEquals("POST", this.endpoint.method);
+        assertEquals("/reverse/proxy/family-alerts", this.endpoint.target);
+        assertEquals("Bearer secret-token", this.endpoint.headers.get("authorization"));
+        assertEquals("AirTag may have been left behind", this.endpoint.headers.get("title"));
+        assertEquals("high", this.endpoint.headers.get("priority"));
+        assertEquals(
+                "Backpack AirTag may have been left behind. Last heard: 5 minutes ago.",
+                this.endpoint.body);
     }
 
     private static final class LocalEndpoint implements Closeable {

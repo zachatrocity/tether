@@ -428,7 +428,7 @@ Als Apple het verzoek simpelweg weigerde, is even wachten en opnieuw proberen he
     <string name="ntfy_settings_title">AirTag-meldingen via ntfy</string>
     <string name="ntfy_settings_explainer">Koppel je eigen ntfy-server voor optionele AirTag-waarschuwingen. Tether levert of beheert geen ntfy-dienst.</string>
     <string name="ntfy_enable_airtag_alerts">ntfy inschakelen voor AirTag-waarschuwingen</string>
-    <string name="ntfy_enable_explainer">Standaard uit. Test de verbinding voordat je bezorging inschakelt. Bezorging van AirTag-gebeurtenissen stel je afzonderlijk in.</string>
+    <string name="ntfy_enable_explainer">Standaard uit. Als dit is ingeschakeld, stuurt Tether het AirTag-label, de relatieve tijd sinds de laatste detectie en het waarschuwingstijdstip naar deze server en dit onderwerp. Lokale waarschuwingen blijven werken als ntfy mislukt. Mislukte verzoeken worden niet opnieuw geprobeerd.</string>
     <string name="ntfy_topic">Onderwerp</string>
     <string name="ntfy_clear_saved_token">Opgeslagen token wissen</string>
     <string name="ntfy_send_test">Testmelding versturen</string>
@@ -451,4 +451,6 @@ Als Apple het verzoek simpelweg weigerde, is even wachten en opnieuw proberen he
     <string name="ntfy_test_failed_dns">De servernaam is niet gevonden. Controleer het adres en netwerk.</string>
     <string name="ntfy_test_failed_tls">De beveiligde verbinding is mislukt. Controleer het servercertificaat en de klok van deze telefoon.</string>
     <string name="ntfy_test_failed_network">De melding kon niet worden verstuurd. Controleer het adres en netwerk en probeer opnieuw.</string>
+    <string name="ntfy_left_behind_title">AirTag is mogelijk achtergelaten</string>
+    <string name="ntfy_left_behind_message">%1$s is mogelijk achtergelaten. Laatst gehoord: %2$s.</string>
 </resources>
