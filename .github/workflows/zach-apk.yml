@@ -39,7 +39,7 @@ jobs:
       - name: Login, ntfy, and native runtime tests
         run: >-
           ./gradlew :app:testEmulatorDebugAndroidTest --console=plain
-          -Pandroid.testInstrumentationRunnerArguments.class=dev.wander.android.opentagviewer.AppleLoginFallbackFlowTest,dev.wander.android.opentagviewer.ui.RemoteServerButtonLayoutTest,dev.wander.android.opentagviewer.ui.TetherBrandingTest,dev.wander.android.opentagviewer.anisette.MacCoreAdiLoadTest,dev.wander.android.opentagviewer.source.NtfySettingsTest,dev.wander.android.opentagviewer.ui.settings.NtfySettingsScreenTest,dev.wander.android.opentagviewer.ui.settings.NtfyEndpointSmokeTest
+          -Pandroid.testInstrumentationRunnerArguments.class=dev.wander.android.opentagviewer.AppleLoginFallbackFlowTest,dev.wander.android.opentagviewer.ui.RemoteServerButtonLayoutTest,dev.wander.android.opentagviewer.ui.TetherBrandingTest,dev.wander.android.opentagviewer.anisette.MacCoreAdiLoadTest,dev.wander.android.opentagviewer.source.NtfySettingsTest,dev.wander.android.opentagviewer.ui.settings.NtfySettingsScreenTest,dev.wander.android.opentagviewer.ui.settings.NtfyEndpointSmokeTest,dev.wander.android.opentagviewer.ui.family.FamilyOverviewLayoutTest,dev.wander.android.opentagviewer.ui.family.FamilyOverviewFlowTest
       - uses: actions/upload-artifact@v4
         if: always()
         with:
