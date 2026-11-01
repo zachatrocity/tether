@@ -10,6 +10,7 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import dev.wander.android.opentagviewer.db.room.dao.BeaconNamingRecordDao;
+import dev.wander.android.opentagviewer.db.room.dao.FamilyProfileDao;
 import dev.wander.android.opentagviewer.db.room.dao.LastBleSightingDao;
 import dev.wander.android.opentagviewer.db.room.dao.DailyHistoryFetchRecordDao;
 import dev.wander.android.opentagviewer.db.room.dao.HistoryImportDao;
@@ -17,6 +18,8 @@ import dev.wander.android.opentagviewer.db.room.dao.ImportDao;
 import dev.wander.android.opentagviewer.db.room.dao.LocationReportDao;
 import dev.wander.android.opentagviewer.db.room.dao.OwnedBeaconDao;
 import dev.wander.android.opentagviewer.db.room.dao.UserBeaconOptionsDao;
+import dev.wander.android.opentagviewer.db.room.entity.AirTagProfileAssignment;
+import dev.wander.android.opentagviewer.db.room.entity.FamilyProfile;
 import dev.wander.android.opentagviewer.db.room.entity.BeaconNamingRecord;
 import dev.wander.android.opentagviewer.db.room.entity.LastBleSighting;
 import dev.wander.android.opentagviewer.db.room.entity.DailyHistoryFetchRecord;
@@ -33,9 +36,11 @@ import dev.wander.android.opentagviewer.db.room.entity.UserBeaconOptions;
         LocationReport.class,
         DailyHistoryFetchRecord.class,
         UserBeaconOptions.class,
-        LastBleSighting.class
+        LastBleSighting.class,
+        FamilyProfile.class,
+        AirTagProfileAssignment.class
     },
-    version = 10
+    version = 11
 )
 public abstract class OpenTagViewerDatabase extends RoomDatabase {
     private static OpenTagViewerDatabase INSTANCE = null;
@@ -219,6 +224,34 @@ public abstract class OpenTagViewerDatabase extends RoomDatabase {
     };
 
     /**
+     * v10 -> v11: adds local family profiles and their one-to-many AirTag associations.
+     *
+     * <p>Both tables start empty. Existing AirTags therefore surface through the explicit
+     * unassigned query without copying or rewriting any tag, report, option or account data.
+     * An assignment is its AirTag's primary key, which enforces at most one current profile;
+     * deleting a profile cascades only these association rows.
+     */
+    public static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `FamilyProfile` ("
+                    + "`id` TEXT NOT NULL, "
+                    + "`display_name` TEXT NOT NULL, "
+                    + "PRIMARY KEY(`id`))");
+            db.execSQL("CREATE TABLE IF NOT EXISTS `AirTagProfileAssignment` ("
+                    + "`beacon_id` TEXT NOT NULL, "
+                    + "`profile_id` TEXT NOT NULL, "
+                    + "PRIMARY KEY(`beacon_id`), "
+                    + "FOREIGN KEY(`beacon_id`) REFERENCES `OwnedBeacons`(`id`)"
+                    + " ON UPDATE CASCADE ON DELETE CASCADE, "
+                    + "FOREIGN KEY(`profile_id`) REFERENCES `FamilyProfile`(`id`)"
+                    + " ON UPDATE CASCADE ON DELETE CASCADE)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_AirTagProfileAssignment_profile_id`"
+                    + " ON `AirTagProfileAssignment` (`profile_id`)");
+        }
+    };
+
+    /**
      * The database file's name, which is also read directly - see
      * {@code OpenAirTagApplication.isFirstRun()}, which uses the file's presence to tell a new
      * user from a returning one before anything has opened the database.
@@ -235,7 +268,7 @@ public abstract class OpenTagViewerDatabase extends RoomDatabase {
                     DATABASE_NAME)
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                             MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-                            MIGRATION_8_9, MIGRATION_9_10)
+                            MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .build();
         }
 
@@ -250,4 +283,5 @@ public abstract class OpenTagViewerDatabase extends RoomDatabase {
     public abstract DailyHistoryFetchRecordDao dailyHistoryFetchRecordDao();
     public abstract UserBeaconOptionsDao userBeaconOptionsDao();
     public abstract LastBleSightingDao lastBleSightingDao();
+    public abstract FamilyProfileDao familyProfileDao();
 }
