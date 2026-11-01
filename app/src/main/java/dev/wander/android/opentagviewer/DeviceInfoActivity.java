@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.location.Address;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -37,6 +38,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.emoji2.emojipicker.EmojiPickerView;
 import androidx.emoji2.emojipicker.EmojiViewItem;
 
@@ -47,6 +50,8 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,25 +68,35 @@ import dev.wander.android.opentagviewer.ble.NearbyTagSighting;
 import dev.wander.android.opentagviewer.ble.NearbyTagSightings;
 import dev.wander.android.opentagviewer.ble.NearbyTagWatcher;
 import dev.wander.android.opentagviewer.data.model.BeaconInformation;
+import dev.wander.android.opentagviewer.data.model.BeaconLocationReport;
 import dev.wander.android.opentagviewer.data.model.UserMapCameraPosition;
 import dev.wander.android.opentagviewer.databinding.ActivityDeviceInfoBinding;
 import dev.wander.android.opentagviewer.db.datastore.UserCacheDataStore;
 import dev.wander.android.opentagviewer.db.datastore.UserSettingsDataStore;
 import dev.wander.android.opentagviewer.db.repo.BeaconRepository;
+import dev.wander.android.opentagviewer.db.repo.FamilyProfileRepository;
 import dev.wander.android.opentagviewer.db.repo.UserDataRepository;
 import dev.wander.android.opentagviewer.db.datastore.UserAuthDataStore;
 import dev.wander.android.opentagviewer.db.repo.KeychainMembershipRepository;
 import dev.wander.android.opentagviewer.db.repo.UserSettingsRepository;
 import dev.wander.android.opentagviewer.db.repo.model.BeaconData;
 import dev.wander.android.opentagviewer.db.repo.model.LastSightingData;
+import dev.wander.android.opentagviewer.db.repo.model.FamilyProfileWithAirTags;
+import dev.wander.android.opentagviewer.db.repo.model.FamilyProfilesSnapshot;
 import dev.wander.android.opentagviewer.db.repo.model.UserSettings;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
 import dev.wander.android.opentagviewer.db.room.entity.Import;
 import dev.wander.android.opentagviewer.db.room.entity.UserBeaconOptions;
+import dev.wander.android.opentagviewer.db.room.entity.FamilyProfile;
 import dev.wander.android.opentagviewer.source.ExternalAccessory;
 import dev.wander.android.opentagviewer.ui.importing.ExternalDeviceImporter;
 import dev.wander.android.opentagviewer.ui.compat.WindowPaddingUtil;
+import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresh;
+import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresher;
+import dev.wander.android.opentagviewer.ui.evidence.AirTagEvidence;
+import dev.wander.android.opentagviewer.ui.family.AssociatedAirTagAdapter;
 import dev.wander.android.opentagviewer.util.android.CachedPhoneLocation;
+import dev.wander.android.opentagviewer.util.android.AddressLookup;
 import dev.wander.android.opentagviewer.util.android.FusedPhoneLocation;
 import dev.wander.android.opentagviewer.util.android.PropertiesUtil;
 import dev.wander.android.opentagviewer.util.android.WebLink;
@@ -126,6 +141,10 @@ public class DeviceInfoActivity extends AppCompatActivity
     private UserSettingsRepository userSettingsRepo;
     private UserDataRepository userDataRepository;
     private BeaconRepository beaconRepo;
+    private FamilyProfileRepository familyProfileRepo;
+    private AirTagReportRefresh reportRefresh;
+    private AddressLookup geocoder;
+    private AssociatedAirTagAdapter associatedAirTags;
     private BeaconData beaconData;
     private BeaconInformation beaconInformation;
     /** Null for a tag read from the Apple account - nothing was ever exported or imported. */
@@ -202,6 +221,14 @@ public class DeviceInfoActivity extends AppCompatActivity
     /** The one place a Bluetooth sighting is persisted - see {@link AccessorySightingPersister}. */
     private AccessorySightingPersister sightingPersister;
 
+    /** Detail/profile evidence reads and the user-triggered network check. */
+    private Disposable detailEvidenceLookup;
+    private Disposable detailLocalPlaceLookup;
+    private Disposable detailPlaceLookup;
+    private Disposable checkAgainLookup;
+    private long liveDetailSightingAtMs;
+    private BeaconLocationReport latestLocalReport;
+
     private boolean hasNameChanges = false;
 
     @Override
@@ -223,8 +250,13 @@ public class DeviceInfoActivity extends AppCompatActivity
 
         this.userSettings = this.userSettingsRepo.getUserSettings();
 
-        this.beaconRepo = new BeaconRepository(
-                OpenTagViewerDatabase.getInstance(getApplicationContext()));
+        final OpenTagViewerDatabase database = OpenTagViewerDatabase.getInstance(
+                getApplicationContext());
+        this.beaconRepo = new BeaconRepository(database);
+        this.familyProfileRepo = new FamilyProfileRepository(database);
+        this.reportRefresh = AppDependencies.airTagReportRefresh(this.beaconRepo);
+        this.geocoder = AppDependencies.geocoder(
+                this.getApplicationContext(), Locale.getDefault());
         this.sightingPersister = new AccessorySightingPersister(this.beaconRepo,
                 new CachedPhoneLocation(new FusedPhoneLocation(this.getApplicationContext())));
 
@@ -251,6 +283,7 @@ public class DeviceInfoActivity extends AppCompatActivity
         binding.setDeviceName(this.beaconInformation.getName());
         binding.setOnClickDeviceName(this::handleEditDeviceName);
         binding.setOnClickDeviceEmoji(this::handleEditDeviceEmoji);
+        this.setupAirTagDetailSummary();
 
         // **Two independent questions, deliberately not one.** "Exported by", "Exported at" and
         // "Imported at" all read from an `Import` row, so they are shown when there is one. The
@@ -407,6 +440,330 @@ public class DeviceInfoActivity extends AppCompatActivity
                 handleEndActivity();
             }
         });
+    }
+
+    private void setupAirTagDetailSummary() {
+        ((TextView) this.findViewById(R.id.detail_airtag_name))
+                .setText(this.beaconInformation.getName());
+        this.associatedAirTags = new AssociatedAirTagAdapter(
+                this.beaconId,
+                associatedId -> this.startActivity(new Intent(this, DeviceInfoActivity.class)
+                        .putExtra("beaconId", associatedId)));
+        final RecyclerView associated = this.findViewById(R.id.detail_associated_airtags);
+        associated.setLayoutManager(new LinearLayoutManager(this));
+        associated.setAdapter(this.associatedAirTags);
+        associated.setItemAnimator(null);
+
+        this.findViewById(R.id.detail_check_again)
+                .setOnClickListener(view -> this.checkAgain());
+        this.findViewById(R.id.detail_play_sound)
+                .setOnClickListener(view -> this.onClickPlaySoundNearby());
+        this.findViewById(R.id.detail_full_history)
+                .setOnClickListener(view -> this.redirectToDeviceHistory());
+    }
+
+    private void loadAirTagDetailEvidence() {
+        if (this.detailEvidenceLookup != null && !this.detailEvidenceLookup.isDisposed()) {
+            this.detailEvidenceLookup.dispose();
+        }
+        this.detailEvidenceLookup = Observable.zip(
+                        this.familyProfileRepo.listProfilesWithAirTags().toObservable(),
+                        this.beaconRepo.getAllBeacons().flatMap(BeaconDataParser::parseAsync),
+                        this.beaconRepo.getLastAppleLocationsForAll(),
+                        this.beaconRepo.getLastLocalLocationsForAll(),
+                        this.beaconRepo.getLastSightingsForAll(),
+                        DetailEvidence::new)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::showAirTagDetailEvidence,
+                        error -> Log.e(TAG, "Could not load AirTag detail evidence", error));
+    }
+
+    private void showAirTagDetailEvidence(final DetailEvidence loaded) {
+        FamilyProfileWithAirTags matchedProfile = null;
+        for (final FamilyProfileWithAirTags candidate : loaded.profiles.getProfiles()) {
+            if (candidate.getAirTagIds().contains(this.beaconId)) {
+                matchedProfile = candidate;
+                break;
+            }
+        }
+
+        final TextView profileName = this.findViewById(R.id.detail_profile_name);
+        final TextView association = this.findViewById(R.id.detail_association_summary);
+        final List<String> associatedIds;
+        if (matchedProfile == null) {
+            profileName.setText(R.string.detail_unassigned_profile);
+            association.setText(R.string.detail_unassigned_summary);
+            associatedIds = List.of(this.beaconId);
+        } else {
+            final FamilyProfile profile = matchedProfile.getProfile();
+            profileName.setText(profile.displayName);
+            association.setText(R.string.detail_profile_local_only);
+            associatedIds = matchedProfile.getAirTagIds();
+        }
+
+        final Map<String, BeaconInformation> airTagsById = new HashMap<>();
+        for (final BeaconInformation airTag : loaded.airTags) {
+            airTagsById.put(airTag.getBeaconId(), airTag);
+        }
+        final List<BeaconInformation> associatedAirTagRows = new ArrayList<>();
+        for (final String associatedId : associatedIds) {
+            final BeaconInformation airTag = airTagsById.get(associatedId);
+            if (airTag != null) {
+                associatedAirTagRows.add(airTag);
+            }
+        }
+        this.associatedAirTags.replaceWith(associatedAirTagRows);
+
+        this.latestLocalReport = loaded.localReports.get(this.beaconId);
+        this.showLocalEvidence(
+                loaded.localSightings.get(this.beaconId),
+                this.latestLocalReport);
+        this.showNetworkEvidence(loaded.appleReports.get(this.beaconId));
+    }
+
+    private void showLocalEvidence(
+            final LastSightingData sighting,
+            final BeaconLocationReport localReport) {
+        if (this.liveDetailSightingAtMs > 0
+                && System.currentTimeMillis() - this.liveDetailSightingAtMs
+                        < NearbyTagSightings.FRESH_FOR_MS) {
+            this.showLiveLocalEvidence(this.liveDetailSightingAtMs, localReport);
+            return;
+        }
+        final TextView title = this.findViewById(R.id.detail_local_title);
+        final long nowMs = System.currentTimeMillis();
+        final AirTagEvidence.LocalState state = AirTagEvidence.local(sighting, nowMs);
+        final boolean hasValidLocalReport =
+                localReport != null && localReport.getTimestamp() <= nowMs;
+        final String evidence;
+        if (state == AirTagEvidence.LocalState.UNKNOWN && !hasValidLocalReport) {
+            title.setText(R.string.detail_no_nearby_evidence);
+            evidence = this.getString(R.string.detail_no_local_sighting);
+        } else {
+            final long heardAtMs = sighting != null
+                    ? sighting.getHeardAtMs() : localReport.getTimestamp();
+            final boolean nearby = heardAtMs <= nowMs
+                    && nowMs - heardAtMs < NearbyTagSightings.FRESH_FOR_MS;
+            title.setText(nearby ? R.string.detail_nearby_now : R.string.detail_last_heard);
+            evidence = this.getString(
+                    nearby ? R.string.detail_nearby_body : R.string.detail_last_heard_body,
+                    this.beaconInformation.getName(),
+                    relativeAge(heardAtMs));
+        }
+        this.showLocalPosition(evidence, localReport);
+    }
+
+    private void showLiveLocalEvidence(
+            final long heardAtMs,
+            final BeaconLocationReport localReport) {
+        final TextView title = this.findViewById(R.id.detail_local_title);
+        title.setText(R.string.detail_nearby_now);
+        this.showLocalPosition(this.getString(
+                R.string.detail_nearby_body,
+                this.beaconInformation.getName(),
+                relativeAge(heardAtMs)), localReport);
+    }
+
+    private void showLocalPosition(
+            final String evidence,
+            final BeaconLocationReport localReport) {
+        final TextView body = this.findViewById(R.id.detail_local_body);
+        if (localReport == null || localReport.getTimestamp() > System.currentTimeMillis()) {
+            body.setText(evidence);
+            this.updateLocalAccessibility();
+            return;
+        }
+        final String coordinates = AirTagEvidence.formatCoordinates(
+                localReport.getLatitude(), localReport.getLongitude());
+        body.setText(this.localEvidenceWithPlace(evidence, coordinates, localReport));
+        this.updateLocalAccessibility();
+        this.resolveLocalPlace(evidence, localReport);
+    }
+
+    private String localEvidenceWithPlace(
+            final String evidence,
+            final String place,
+            final BeaconLocationReport localReport) {
+        final String accuracy = AirTagEvidence.formatAccuracy(
+                localReport.getHorizontalAccuracy(),
+                meters -> this.getString(R.string.evidence_accuracy_meters, meters));
+        final String location;
+        if (accuracy == null) {
+            location = this.getString(
+                    R.string.detail_local_position,
+                    place,
+                    relativeAge(localReport.getTimestamp()));
+        } else {
+            location = this.getString(
+                    R.string.detail_local_position_with_accuracy,
+                    place,
+                    accuracy,
+                    relativeAge(localReport.getTimestamp()));
+        }
+        return evidence + "\n" + location;
+    }
+
+    private void resolveLocalPlace(
+            final String evidence,
+            final BeaconLocationReport localReport) {
+        if (this.detailLocalPlaceLookup != null && !this.detailLocalPlaceLookup.isDisposed()) {
+            this.detailLocalPlaceLookup.dispose();
+        }
+        this.detailLocalPlaceLookup = Observable.fromCallable(() -> this.geocoder.getFromLocation(
+                        localReport.getLatitude(), localReport.getLongitude(), 1))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(addresses -> {
+                    if (addresses.isEmpty()) {
+                        return;
+                    }
+                    final String line = addresses.get(0).getAddressLine(0);
+                    if (line != null && !line.isBlank()) {
+                        ((TextView) this.findViewById(R.id.detail_local_body)).setText(
+                                this.localEvidenceWithPlace(evidence, line, localReport));
+                        this.updateLocalAccessibility();
+                    }
+                }, error -> Log.w(TAG,
+                        "Could not resolve the local AirTag sighting place; keeping coordinates",
+                        error));
+    }
+
+    private void updateLocalAccessibility() {
+        final TextView title = this.findViewById(R.id.detail_local_title);
+        final TextView body = this.findViewById(R.id.detail_local_body);
+        this.findViewById(R.id.detail_local_card).setContentDescription(this.getString(
+                R.string.detail_local_accessibility,
+                title.getText(),
+                body.getText()));
+    }
+
+    private void showNetworkEvidence(final BeaconLocationReport report) {
+        final TextView age = this.findViewById(R.id.detail_network_age);
+        final TextView place = this.findViewById(R.id.detail_network_place);
+        final TextView meta = this.findViewById(R.id.detail_network_meta);
+        final TextView caveat = this.findViewById(R.id.detail_network_caveat);
+        if (report == null) {
+            age.setText(R.string.family_no_report_yet);
+            place.setText(R.string.family_no_saved_report);
+            meta.setVisibility(GONE);
+            caveat.setText(R.string.detail_no_report_caveat);
+            this.updateNetworkAccessibility();
+            return;
+        }
+
+        final AirTagEvidence.NetworkState state =
+                AirTagEvidence.network(report, System.currentTimeMillis());
+        final String reportAge = relativeAge(report.getTimestamp());
+        age.setText(this.getString(
+                state == AirTagEvidence.NetworkState.STALE
+                        ? R.string.detail_network_report_stale
+                        : R.string.detail_network_report_age,
+                reportAge));
+        place.setText(AirTagEvidence.formatCoordinates(
+                report.getLatitude(), report.getLongitude()));
+        final String accuracy = AirTagEvidence.formatAccuracy(
+                report.getHorizontalAccuracy(),
+                meters -> this.getString(R.string.evidence_accuracy_meters, meters));
+        meta.setText(accuracy == null
+                ? this.getString(R.string.detail_network_source)
+                : this.getString(
+                        R.string.detail_network_meta,
+                        this.getString(R.string.detail_network_source),
+                        accuracy));
+        meta.setVisibility(VISIBLE);
+        caveat.setText(R.string.detail_not_live_position);
+        this.updateNetworkAccessibility();
+        this.resolveNetworkPlace(report);
+    }
+
+    private void resolveNetworkPlace(final BeaconLocationReport report) {
+        if (this.detailPlaceLookup != null && !this.detailPlaceLookup.isDisposed()) {
+            this.detailPlaceLookup.dispose();
+        }
+        this.detailPlaceLookup = Observable.fromCallable(() -> this.geocoder.getFromLocation(
+                        report.getLatitude(), report.getLongitude(), 1))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(addresses -> {
+                    if (addresses.isEmpty()) {
+                        return;
+                    }
+                    final Address address = addresses.get(0);
+                    final String line = address.getAddressLine(0);
+                    if (line != null && !line.isBlank()) {
+                        ((TextView) this.findViewById(R.id.detail_network_place)).setText(line);
+                        this.updateNetworkAccessibility();
+                    }
+                }, error -> Log.w(TAG, "Could not resolve the AirTag network report place", error));
+    }
+
+    private void updateNetworkAccessibility() {
+        final TextView age = this.findViewById(R.id.detail_network_age);
+        final TextView place = this.findViewById(R.id.detail_network_place);
+        final TextView meta = this.findViewById(R.id.detail_network_meta);
+        final String details = meta.getVisibility() == VISIBLE
+                ? meta.getText().toString() : this.getString(R.string.family_no_saved_report);
+        this.findViewById(R.id.detail_network_card).setContentDescription(this.getString(
+                R.string.detail_network_accessibility,
+                age.getText(),
+                place.getText(),
+                details));
+    }
+
+    private void checkAgain() {
+        final MaterialButton button = this.findViewById(R.id.detail_check_again);
+        button.setEnabled(false);
+        button.setText(R.string.detail_checking_again);
+        if (this.checkAgainLookup != null && !this.checkAgainLookup.isDisposed()) {
+            this.checkAgainLookup.dispose();
+        }
+        this.checkAgainLookup = this.reportRefresh.checkAgain(this.beaconInformation)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        () -> {
+                            button.setEnabled(true);
+                            button.setText(R.string.detail_check_again);
+                            Toast.makeText(this, R.string.detail_check_success, LENGTH_SHORT).show();
+                            this.loadAirTagDetailEvidence();
+                        },
+                        error -> {
+                            Log.w(TAG, "Check again failed for beaconId=" + this.beaconId, error);
+                            button.setEnabled(true);
+                            button.setText(R.string.detail_check_again);
+                            final int message = error instanceof AirTagReportRefresher.SignedOutException
+                                    ? R.string.detail_sign_in_required
+                                    : R.string.detail_check_failed;
+                            Toast.makeText(this, message, LENGTH_LONG).show();
+                        });
+    }
+
+    private static String relativeAge(final long timestampMs) {
+        return DateUtils.getRelativeTimeSpanString(
+                timestampMs,
+                System.currentTimeMillis(),
+                DateUtils.MINUTE_IN_MILLIS).toString();
+    }
+
+    private static final class DetailEvidence {
+        private final FamilyProfilesSnapshot profiles;
+        private final List<BeaconInformation> airTags;
+        private final Map<String, BeaconLocationReport> appleReports;
+        private final Map<String, BeaconLocationReport> localReports;
+        private final Map<String, LastSightingData> localSightings;
+
+        DetailEvidence(
+                final FamilyProfilesSnapshot profiles,
+                final List<BeaconInformation> airTags,
+                final Map<String, BeaconLocationReport> appleReports,
+                final Map<String, BeaconLocationReport> localReports,
+                final Map<String, LastSightingData> localSightings) {
+            this.profiles = profiles;
+            this.airTags = airTags;
+            this.appleReports = appleReports;
+            this.localReports = localReports;
+            this.localSightings = localSightings;
+        }
     }
 
     private void handleEndActivity() {
@@ -664,6 +1021,7 @@ public class DeviceInfoActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
+        this.loadAirTagDetailEvidence();
         this.startWatchingForThisTag();
         this.showWhatWasHeardOverBluetooth();
         this.showLeftBehindSwitch();
@@ -766,6 +1124,8 @@ public class DeviceInfoActivity extends AppCompatActivity
         this.binding.setBleBatteryLevel(
                 this.getString(NearbyTagLabel.shortBatteryLabel(sighting.getBatteryLevel())));
         this.showStatusByteForDebugging(sighting.getStatusByte());
+        this.liveDetailSightingAtMs = System.currentTimeMillis();
+        this.showLiveLocalEvidence(this.liveDetailSightingAtMs, this.latestLocalReport);
 
         this.showBluetoothSection(true);
 
@@ -803,6 +1163,7 @@ public class DeviceInfoActivity extends AppCompatActivity
      * never heard - a new install, or one whose tags have only ever been seen over the network.
      */
     private void showWhatWasHeardOverBluetooth() {
+        this.liveDetailSightingAtMs = 0;
         if (this.lastSightingLookup != null && !this.lastSightingLookup.isDisposed()) {
             this.lastSightingLookup.dispose();
         }
@@ -812,6 +1173,7 @@ public class DeviceInfoActivity extends AppCompatActivity
                 .subscribe(stored -> {
                     if (stored.isEmpty()) {
                         this.showBluetoothSection(false);
+                        this.showLocalEvidence(null, this.latestLocalReport);
                         return;
                     }
 
@@ -819,6 +1181,7 @@ public class DeviceInfoActivity extends AppCompatActivity
                     this.binding.setBleBatteryLevel(this.getString(
                             NearbyTagLabel.shortBatteryLabel(sighting.getBatteryLevel())));
                     this.showStatusByteForDebugging(sighting.getStatusByte());
+                    this.showLocalEvidence(sighting, this.latestLocalReport);
                     this.showAgeOfLastSighting(sighting.getHeardAtMs());
                     this.showBluetoothSection(true, false);
 
@@ -947,6 +1310,18 @@ public class DeviceInfoActivity extends AppCompatActivity
         this.stopWatchingForThisTag();
         if (this.hardwareLookup != null && !this.hardwareLookup.isDisposed()) {
             this.hardwareLookup.dispose();
+        }
+        if (this.detailEvidenceLookup != null && !this.detailEvidenceLookup.isDisposed()) {
+            this.detailEvidenceLookup.dispose();
+        }
+        if (this.detailPlaceLookup != null && !this.detailPlaceLookup.isDisposed()) {
+            this.detailPlaceLookup.dispose();
+        }
+        if (this.detailLocalPlaceLookup != null && !this.detailLocalPlaceLookup.isDisposed()) {
+            this.detailLocalPlaceLookup.dispose();
+        }
+        if (this.checkAgainLookup != null && !this.checkAgainLookup.isDisposed()) {
+            this.checkAgainLookup.dispose();
         }
         // **Disposed, but the write is not cancelled** - it is already on its way to Apple, and
         // there is no undoing that from here. What this stops is the result landing on views

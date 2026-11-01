@@ -90,6 +90,25 @@ Family profiles are stored only in the app database. Upgrading creates no people
 and does not rewrite imported AirTags, account state, tag settings, or saved reports. Profile
 data is not synced or shared.
 
+## AirTag details and report history
+
+An AirTag detail page keeps two evidence sources separate. **Nearby now** and the last local
+Bluetooth sighting describe what this Android phone heard, with the phone position when one was
+saved. **Last Apple network report** separately shows its age, place or coordinate fallback,
+source, and horizontal accuracy. Reports over one hour old say **not current**; no saved Apple
+position says **No report yet**. Horizontal accuracy is an uncertainty radius, never a distance
+to the AirTag or a person.
+
+From the same page, **Check again** asks Apple for a newer report, **Play sound** uses the existing
+nearby Bluetooth permission flow, and **Full history** opens that AirTag's detailed saved history.
+Rename and settings remain below the evidence summary. The associated-profile list names every
+AirTag assigned to the same local profile and links to each other AirTag's detail page.
+
+The global **Report history** destination is a factual feed of saved local sightings, Apple
+network reports, stale reports, and actual refresh failures. It does not infer arrivals,
+departures, routines, trips, or child presence. Each AirTag event retains a **Full history**
+action for the detailed per-tag record.
+
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions and [branding/README.md](branding/README.md) for the Orbit artwork and reproducible asset generator. The source namespace stays upstream-compatible even though the installed package is `io.zachs.tether`.

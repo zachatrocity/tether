@@ -38,6 +38,7 @@ import dev.wander.android.opentagviewer.Eventually;
 import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.MapsActivity;
 import dev.wander.android.opentagviewer.MyDevicesListActivity;
+import dev.wander.android.opentagviewer.ReportHistoryActivity;
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.db.repo.FamilyProfileRepository;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
@@ -128,8 +129,7 @@ public class FamilyOverviewFlowTest {
                             .performIdentifierAction(R.id.navigation_reports, 0));
         });
         Eventually.check(() -> assertTrue("the navigation menu did not open Reports",
-                sentIntent(MyDevicesListActivity.class, MyDevicesListActivity.EXTRA_DESTINATION,
-                        MyDevicesListActivity.DESTINATION_REPORT_HISTORY)));
+                sentIntent(ReportHistoryActivity.class, null, null)));
     }
 
     @Test

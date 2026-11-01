@@ -40,6 +40,7 @@ import dev.wander.android.opentagviewer.MapsActivity;
 import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.MyDevicesListActivity;
 import dev.wander.android.opentagviewer.R;
+import dev.wander.android.opentagviewer.ReportHistoryActivity;
 import dev.wander.android.opentagviewer.SettingsActivity;
 import android.view.View;
 import androidx.test.espresso.matcher.ViewMatchers;
@@ -112,10 +113,8 @@ public class EveryButtonOnTheMapGoesSomewhereTest {
     public void theMenuOpensReportHistory() {
         this.pickFromTheOverflow(R.string.report_history);
 
-        Eventually.check(() -> intended(allOf(
-                hasComponent(MyDevicesListActivity.class.getName()),
-                hasExtra(MyDevicesListActivity.EXTRA_DESTINATION,
-                        MyDevicesListActivity.DESTINATION_REPORT_HISTORY))));
+        Eventually.check(() -> intended(
+                hasComponent(ReportHistoryActivity.class.getName())));
     }
 
     @Test

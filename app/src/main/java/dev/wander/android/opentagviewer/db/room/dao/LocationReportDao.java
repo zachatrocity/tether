@@ -43,6 +43,23 @@ public interface LocationReportDao {
     @Query("SELECT MAX(timestamp) AS latest_report_timestamp, * FROM LocationReport GROUP BY beacon_id")
     List<LocationReport> getLastForAllBeacons();
 
+    /** Every saved report from one source, newest first, for the global factual feed. */
+    @Query("SELECT * FROM LocationReport WHERE provenance = :provenance ORDER BY timestamp DESC")
+    List<LocationReport> getAllWithProvenance(String provenance);
+
+    /**
+     * The newest report of one provenance for each beacon.
+     *
+     * <p>The single {@code MAX(timestamp)} has the same SQLite bare-column contract as
+     * {@link #getLastForAllBeacons()}. Filtering happens before grouping, so a newer local
+     * Bluetooth fix cannot hide the latest Apple network report.
+     */
+    @RewriteQueriesToDropUnusedColumns
+    @Query("SELECT MAX(timestamp) AS latest_report_timestamp, * FROM LocationReport"
+            + " WHERE provenance = :provenance GROUP BY beacon_id")
+    List<LocationReport> getLastForAllBeaconsWithProvenance(String provenance);
+
+
     /**
      * The newest report held for one tag, or null if there are none.
      *
