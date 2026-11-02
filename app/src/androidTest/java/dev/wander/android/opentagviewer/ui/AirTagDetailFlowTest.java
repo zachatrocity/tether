@@ -68,9 +68,9 @@ public class AirTagDetailFlowTest {
 
     @Before
     public void saveTwoAssociatedAirTagsWithBothEvidenceSources() {
+        this.savedFamily.seed(SELECTED_NAME, OTHER_NAME);
         AppDependencies.replaceGeocoder((context, locale) ->
                 (latitude, longitude, maxResults) -> List.of());
-        this.savedFamily.seed(SELECTED_NAME, OTHER_NAME);
         this.selectedId = this.savedFamily.tagIds().get(0);
         this.profiles = new FamilyProfileRepository(this.db);
         this.profileId = this.profiles.createProfile(PROFILE_NAME).blockingGet().id;
