@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import dev.wander.android.opentagviewer.DeviceInfoActivity;
@@ -67,6 +68,8 @@ public class AirTagDetailFlowTest {
 
     @Before
     public void saveTwoAssociatedAirTagsWithBothEvidenceSources() {
+        AppDependencies.replaceGeocoder((context, locale) ->
+                (latitude, longitude, maxResults) -> List.of());
         this.savedFamily.seed(SELECTED_NAME, OTHER_NAME);
         this.selectedId = this.savedFamily.tagIds().get(0);
         this.profiles = new FamilyProfileRepository(this.db);
@@ -96,6 +99,7 @@ public class AirTagDetailFlowTest {
         if (this.scenario != null) {
             this.scenario.close();
         }
+        AppDependencies.reset();
         if (this.profileId != null) {
             this.profiles.deleteProfile(this.profileId).blockingAwait();
         }
