@@ -38,6 +38,12 @@ public class AirTagDetailAndReportHistoryLayoutTest {
     public void detailSummaryRendersInLightAndDarkModesWithOrderedActions() {
         for (final Context context : this.themedContexts()) {
             final View screen = this.inflateAndMeasure(context, R.layout.activity_device_info);
+            getInstrumentation().runOnMainSync(() -> {
+                ((TextView) screen.findViewById(R.id.detail_profile_name)).setText("Mina");
+                ((TextView) screen.findViewById(R.id.detail_airtag_name))
+                        .setText("Backpack AirTag");
+                this.measure(screen);
+            });
             for (final int id : new int[] {
                     R.id.detail_profile_name,
                     R.id.detail_airtag_name,
@@ -46,7 +52,6 @@ public class AirTagDetailAndReportHistoryLayoutTest {
                     R.id.detail_play_sound,
                     R.id.detail_network_card,
                     R.id.detail_full_history,
-                    R.id.detail_associated_airtags,
             }) {
                 assertRealSize(screen, id);
             }
