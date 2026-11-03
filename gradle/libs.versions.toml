@@ -45,6 +45,7 @@ osmdroidVersion = "6.1.20"
 zip4j = "2.11.5"
 # Reads RFC 4180 history exports, including quoted descriptions with embedded newlines.
 commonsCsv = "1.14.1"
+swipeRefreshLayout = "1.1.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -91,6 +92,7 @@ androidx-emoji = { group = "androidx.emoji2", name = "emoji2", version.ref = "em
 androidx-emoji-views = { group = "androidx.emoji2", name = "emoji2-views", version.ref = "emojiPicker" }
 androidx-emoji-views-helper = { group = "androidx.emoji2", name = "emoji2-views-helper", version.ref = "emojiPicker" }
 androidx-emoji-picker = { group = "androidx.emoji2", name = "emoji2-emojipicker", version.ref = "emojiPicker" }
+androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swipeRefreshLayout" }
 amap-map3d = { group = "com.amap.api", name = "3dmap", version.ref = "amapVersion" }
 osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroidVersion" }
 zip4j = { group = "net.lingala.zip4j", name = "zip4j", version.ref = "zip4j" }

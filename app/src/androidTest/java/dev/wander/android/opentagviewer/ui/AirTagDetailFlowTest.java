@@ -16,8 +16,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -43,6 +45,8 @@ import dev.wander.android.opentagviewer.db.room.entity.LastBleSighting;
 import dev.wander.android.opentagviewer.db.room.entity.LocationReport;
 import dev.wander.android.opentagviewer.python.AppDependencies;
 import dev.wander.android.opentagviewer.ui.maps.AMapWithTagsOnIt;
+import dev.wander.android.opentagviewer.ui.maps.FakeMapProvider;
+import dev.wander.android.opentagviewer.ui.maps.MapProviderFactory;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
@@ -64,6 +68,7 @@ public class AirTagDetailFlowTest {
     private String profileId;
     private String selectedId;
     private ActivityScenario<?> scenario;
+    private FakeMapProvider map;
 
     @Before
     public void saveTwoAssociatedAirTagsWithBothEvidenceSources() {
@@ -74,6 +79,8 @@ public class AirTagDetailFlowTest {
         for (final String tagId : this.savedFamily.tagIds()) {
             this.profiles.assignAirTag(tagId, this.profileId).blockingAwait();
         }
+        this.map = new FakeMapProvider();
+        MapProviderFactory.replaceWith(() -> this.map);
 
         final long heardAt = System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(10);
         this.db.lastBleSightingDao().insert(LastBleSighting.builder()
@@ -117,6 +124,16 @@ public class AirTagDetailFlowTest {
             assertTrue(text(activity, R.id.detail_network_age).contains("not current"));
             assertEquals(AMapWithTagsOnIt.WHERE_THAT_IS,
                     text(activity, R.id.detail_network_place));
+            assertEquals(View.VISIBLE,
+                    activity.findViewById(R.id.detail_network_map_card).getVisibility());
+            assertEquals("the latest Apple report did not get one map marker",
+                    1, this.map.markerCount());
+            assertEquals(AMapWithTagsOnIt.LATITUDE,
+                    this.map.markers().get(0).marker.getLatitude(), 0.00001);
+            assertEquals(AMapWithTagsOnIt.LONGITUDE,
+                    this.map.markers().get(0).marker.getLongitude(), 0.00001);
+            assertFalse("the mini map never centred on its marker",
+                    this.map.cameraMoves().isEmpty());
 
             final RecyclerView associated = activity.findViewById(
                     R.id.detail_associated_airtags);
@@ -163,6 +180,14 @@ public class AirTagDetailFlowTest {
             assertTrue(activity.findViewById(R.id.detail_check_again).isEnabled());
             assertEquals(activity.getString(R.string.detail_check_again),
                     text(activity, R.id.detail_check_again));
+            assertEquals("refreshing the report left the mini map at the old latitude",
+                    UPDATED_LATITUDE,
+                    this.map.markers().get(0).marker.getLatitude(),
+                    0.00001);
+            assertEquals("refreshing the report left the mini map at the old longitude",
+                    UPDATED_LONGITUDE,
+                    this.map.markers().get(0).marker.getLongitude(),
+                    0.00001);
         }));
     }
 
@@ -198,8 +223,8 @@ public class AirTagDetailFlowTest {
             final RecyclerView events = activity.findViewById(R.id.report_history_events);
             assertNotNull(events.getAdapter());
             assertEquals(3, events.getAdapter().getItemCount());
-            assertEquals(android.view.View.VISIBLE, events.getVisibility());
-            assertEquals(android.view.View.GONE,
+            assertEquals(View.VISIBLE, events.getVisibility());
+            assertEquals(View.GONE,
                     activity.findViewById(R.id.report_history_empty).getVisibility());
             assertTrue(events.getChildCount() > 0);
             final TextView action = events.getChildAt(0)
@@ -221,7 +246,7 @@ public class AirTagDetailFlowTest {
         Eventually.check(() -> onView(withId(R.id.detail_airtag_name))
                 .check(matches(isDisplayed())));
     }
-    private static String text(final android.app.Activity activity, final int id) {
+    private static String text(final Activity activity, final int id) {
         return ((TextView) activity.findViewById(id)).getText().toString();
     }
 

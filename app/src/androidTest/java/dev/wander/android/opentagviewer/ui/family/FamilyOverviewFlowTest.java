@@ -1,8 +1,13 @@
 package dev.wander.android.opentagviewer.ui.family;
 
 import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.swipeDown;
 import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
+import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
@@ -18,31 +23,48 @@ import android.view.ViewGroup;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.core.widget.NestedScrollView;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.intent.Intents;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.color.MaterialColors;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import dev.wander.android.opentagviewer.AppleLoginActivity;
 import dev.wander.android.opentagviewer.DeviceInfoActivity;
 import dev.wander.android.opentagviewer.Eventually;
 import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.MapsActivity;
 import dev.wander.android.opentagviewer.MyDevicesListActivity;
-import dev.wander.android.opentagviewer.ReportHistoryActivity;
 import dev.wander.android.opentagviewer.R;
+import dev.wander.android.opentagviewer.ReportHistoryActivity;
+import dev.wander.android.opentagviewer.db.datastore.UserAuthDataStore;
 import dev.wander.android.opentagviewer.db.repo.FamilyProfileRepository;
+import dev.wander.android.opentagviewer.db.repo.UserAuthRepository;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
+import dev.wander.android.opentagviewer.db.room.entity.LocationReport;
+import dev.wander.android.opentagviewer.db.room.entity.UserBeaconOptions;
+import dev.wander.android.opentagviewer.python.AppDependencies;
 import dev.wander.android.opentagviewer.ui.maps.AMapWithTagsOnIt;
+import dev.wander.android.opentagviewer.util.android.AppCryptographyUtil;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 /** The signed-in home journey, using saved reports rather than a live Apple response. */
 @LargeTest
@@ -53,14 +75,21 @@ public class FamilyOverviewFlowTest {
     private final List<String> profileIds = new ArrayList<>();
 
     private FamilyProfileRepository profiles;
+    private OpenTagViewerDatabase database;
     private ActivityScenario<FamilyOverviewActivity> scenario;
 
     @Before
     public void seedSavedFamilyOverview() {
-        this.savedFamily.seed("Backpack AirTag", "Bike AirTag", "Keys AirTag")
-                .arrangedAs(0, 1, 2);
-        this.profiles = new FamilyProfileRepository(OpenTagViewerDatabase.getInstance(
-                getInstrumentation().getTargetContext()));
+        this.savedFamily.seed("Backpack AirTag", "Bike AirTag", "Keys AirTag");
+        this.database = OpenTagViewerDatabase.getInstance(
+                getInstrumentation().getTargetContext());
+        this.database.userBeaconOptionsDao().insertAll(UserBeaconOptions.builder()
+                .beaconId(this.savedFamily.tagIds().get(0))
+                .lastUpdate(System.currentTimeMillis())
+                .uiEmoji("🎒")
+                .build());
+        this.savedFamily.arrangedAs(0, 1, 2);
+        this.profiles = new FamilyProfileRepository(this.database);
         this.createProfile("Mina", 0);
         this.createProfile("Evan", 1);
 
@@ -133,6 +162,121 @@ public class FamilyOverviewFlowTest {
     }
 
     @Test
+    public void disconnectedNoticeOffersAButtonThatOpensLogin() {
+        new UserAuthRepository(
+                UserAuthDataStore.getInstance(getInstrumentation().getTargetContext()),
+                new AppCryptographyUtil())
+                .clearUser()
+                .blockingAwait();
+        this.scenario = ActivityScenario.launch(FamilyOverviewActivity.class);
+
+        Eventually.check(() -> this.scenario.onActivity(activity -> {
+            assertNotNull("saved AirTags disappeared with the disconnected account",
+                    rowNamed(activity, "Backpack AirTag"));
+            assertEquals(VISIBLE,
+                    activity.findViewById(R.id.family_status_notice).getVisibility());
+            assertEquals(activity.getString(R.string.family_account_disconnected_title),
+                    ((TextView) activity.findViewById(R.id.family_status_title))
+                            .getText().toString());
+            assertEquals(VISIBLE,
+                    activity.findViewById(R.id.family_status_login).getVisibility());
+        }));
+
+        onView(withId(R.id.family_status_login)).perform(click());
+
+        Eventually.check(() -> assertTrue("the disconnected notice did not open Login",
+                sentIntent(AppleLoginActivity.class, null, null)));
+    }
+
+    @Test
+    public void pullToRefreshUpdatesOnlyAssignedAirTagsAndReloadsTheirEvidence() {
+        final Set<String> refreshed = Collections.synchronizedSet(new HashSet<>());
+        AppDependencies.replaceAirTagReportRefresh(airTag ->
+                Completable.fromAction(() -> {
+                    refreshed.add(airTag.getBeaconId());
+                    this.storeFreshReport(airTag.getBeaconId());
+                }).subscribeOn(Schedulers.io()));
+        this.openHome();
+
+        onView(withId(R.id.family_refresh)).perform(swipeDown());
+
+        final Set<String> expected = new HashSet<>(
+                this.savedFamily.tagIds().subList(0, 2));
+        Eventually.check(() -> assertEquals(
+                "pull-to-refresh did not ask about exactly the assigned AirTags",
+                expected,
+                refreshed));
+        Eventually.check(() -> this.scenario.onActivity(activity -> {
+            final SwipeRefreshLayout refresh = activity.findViewById(R.id.family_refresh);
+            assertFalse("the refresh indicator did not stop", refresh.isRefreshing());
+            final View backpack = rowNamed(activity, "Backpack AirTag");
+            assertNotNull("the refreshed AirTag row disappeared", backpack);
+            final TextView freshness = backpack.findViewById(R.id.family_row_freshness);
+            assertEquals("the refreshed report did not reach the visible row",
+                    MaterialColors.getColor(
+                            backpack, com.google.android.material.R.attr.colorPrimary),
+                    freshness.getCurrentTextColor());
+        }));
+    }
+
+    @Test
+    public void oneTransientFailureStillAttemptsTheOtherAssignedAirTags() {
+        final Set<String> attempted = Collections.synchronizedSet(new HashSet<>());
+        final String failing = this.savedFamily.tagIds().get(0);
+        AppDependencies.replaceAirTagReportRefresh(airTag ->
+                Completable.fromAction(() -> {
+                    attempted.add(airTag.getBeaconId());
+                    if (failing.equals(airTag.getBeaconId())) {
+                        throw new IOException("test refresh failure");
+                    }
+                }).subscribeOn(Schedulers.io()));
+        this.openHome();
+
+        onView(withId(R.id.family_refresh)).perform(swipeDown());
+
+        final Set<String> expected = new HashSet<>(
+                this.savedFamily.tagIds().subList(0, 2));
+        Eventually.check(() -> assertEquals(
+                "one failed AirTag prevented another assigned AirTag from being attempted",
+                expected,
+                attempted));
+        Eventually.check(() -> this.scenario.onActivity(activity -> {
+            assertEquals(VISIBLE,
+                    activity.findViewById(R.id.family_status_notice).getVisibility());
+            assertEquals(activity.getString(R.string.family_refresh_assigned_failed_title),
+                    ((TextView) activity.findViewById(R.id.family_status_title))
+                            .getText().toString());
+            assertFalse(((SwipeRefreshLayout) activity.findViewById(R.id.family_refresh))
+                    .isRefreshing());
+            assertNotNull("saved rows disappeared after a refresh failure",
+                    rowNamed(activity, "Backpack AirTag"));
+        }));
+    }
+
+    @Test
+    public void pullToRefreshExplainsWhenNothingIsAssigned() {
+        this.profiles.unassignAirTag(this.savedFamily.tagIds().get(0)).blockingAwait();
+        this.profiles.unassignAirTag(this.savedFamily.tagIds().get(1)).blockingAwait();
+        final Set<String> attempted = Collections.synchronizedSet(new HashSet<>());
+        AppDependencies.replaceAirTagReportRefresh(airTag ->
+                Completable.fromAction(() -> attempted.add(airTag.getBeaconId())));
+        this.openHome();
+
+        onView(withId(R.id.family_refresh)).perform(swipeDown());
+
+        Eventually.check(() -> this.scenario.onActivity(activity -> {
+            assertTrue("an unassigned AirTag was refreshed", attempted.isEmpty());
+            assertEquals(VISIBLE,
+                    activity.findViewById(R.id.family_status_notice).getVisibility());
+            assertEquals(activity.getString(R.string.family_refresh_no_assigned_title),
+                    ((TextView) activity.findViewById(R.id.family_status_title))
+                            .getText().toString());
+            assertFalse(((SwipeRefreshLayout) activity.findViewById(R.id.family_refresh))
+                    .isRefreshing());
+        }));
+    }
+
+    @Test
     public void compactHomeKeepsTheFinalNamedAirTagAboveTheFloatingMapControl() {
         this.openHome();
 
@@ -175,8 +319,14 @@ public class FamilyOverviewFlowTest {
 
     private void waitForHomeRows() {
         Eventually.check(() -> this.scenario.onActivity(activity -> {
-            assertNotNull("the saved AirTag row never appeared",
-                    rowNamed(activity, "Backpack AirTag"));
+            final View backpack = rowNamed(activity, "Backpack AirTag");
+            assertNotNull("the saved AirTag row never appeared", backpack);
+            assertEquals("the saved AirTag emoji did not appear in its Family avatar",
+                    "🎒",
+                    ((MaterialButton) backpack.findViewById(R.id.family_row_edit_profile))
+                            .getText().toString());
+            assertEquals("a healthy Family Overview rendered a status notice", GONE,
+                    activity.findViewById(R.id.family_status_notice).getVisibility());
             final RecyclerView rows = activity.findViewById(R.id.family_rows);
             assertTrue("unassigned AirTags were not kept explicit",
                     adapterContainsText(rows,
@@ -257,7 +407,7 @@ public class FamilyOverviewFlowTest {
 
     private static PopupMenu navigationMenu(final FamilyOverviewActivity activity) {
         try {
-            final java.lang.reflect.Field field =
+            final Field field =
                     FamilyOverviewActivity.class.getDeclaredField("navigationPopup");
             field.setAccessible(true);
             final PopupMenu popup = (PopupMenu) field.get(activity);
@@ -284,6 +434,26 @@ public class FamilyOverviewFlowTest {
             }
         }
         return false;
+    }
+
+    private void storeFreshReport(final String beaconId) {
+        final long now = System.currentTimeMillis();
+        this.database.locationReportDao().insertAll(new LocationReport[] {
+                LocationReport.builder()
+                        .hashId("family-pull-" + beaconId)
+                        .beaconId(beaconId)
+                        .publishedAt(now)
+                        .description("test pull-to-refresh")
+                        .timestamp(now)
+                        .confidence(2)
+                        .latitude(12.34567)
+                        .longitude(76.54321)
+                        .horizontalAccuracy(25)
+                        .status(144)
+                        .lastUpdate(now)
+                        .provenance(LocationReport.PROVENANCE_APPLE)
+                        .build()
+        });
     }
 
     private void createProfile(final String name, final int tagIndex) {

@@ -3,6 +3,7 @@ package dev.wander.android.opentagviewer.ui.icloud;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.replaceText;
+import static androidx.test.espresso.action.ViewActions.swipeDown;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.intent.Intents.intended;
 import static androidx.test.espresso.intent.Intents.intending;
@@ -37,22 +38,27 @@ import java.util.List;
 import dev.wander.android.opentagviewer.AppleLoginActivity;
 import dev.wander.android.opentagviewer.DeviceInfoActivity;
 import dev.wander.android.opentagviewer.Eventually;
+import dev.wander.android.opentagviewer.FamilyOverviewActivity;
 import dev.wander.android.opentagviewer.FetchFromICloudActivity;
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.db.AccountBeaconsForTests;
 import dev.wander.android.opentagviewer.db.datastore.UserAuthDataStore;
+import dev.wander.android.opentagviewer.db.repo.BeaconRepository;
+import dev.wander.android.opentagviewer.db.repo.FamilyProfileRepository;
 import dev.wander.android.opentagviewer.db.repo.KeychainMembershipRepository;
+import dev.wander.android.opentagviewer.db.repo.UserAuthRepository;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
 import dev.wander.android.opentagviewer.db.room.entity.BeaconNamingRecord;
 import dev.wander.android.opentagviewer.db.room.entity.OwnedBeacon;
 import dev.wander.android.opentagviewer.python.AppDependencies;
+import dev.wander.android.opentagviewer.python.HardwareDescriber;
 import dev.wander.android.opentagviewer.python.icloud.AccountRefresher;
 import dev.wander.android.opentagviewer.python.icloud.FakeICloudService;
-import dev.wander.android.opentagviewer.util.android.AppCryptographyUtil;
-import dev.wander.android.opentagviewer.db.repo.BeaconRepository;
-import dev.wander.android.opentagviewer.db.repo.UserAuthRepository;
-import dev.wander.android.opentagviewer.python.HardwareDescriber;
+import dev.wander.android.opentagviewer.python.icloud.ICloudException;
+import dev.wander.android.opentagviewer.python.icloud.ICloudFailure;
 import dev.wander.android.opentagviewer.python.icloud.KeychainMembership;
+import dev.wander.android.opentagviewer.util.android.AppCryptographyUtil;
+import io.reactivex.rxjava3.core.Completable;
 
 /**
  * Every way this app talks to the account, when Apple refuses the stored password.
@@ -102,11 +108,14 @@ public class EveryPathAsksForAFreshSignInTest {
 
     private ActivityScenario<?> scenario;
     private OpenTagViewerDatabase db;
+    private FamilyProfileRepository profiles;
+    private String familyProfileId;
 
     @Before
     public void refuseEverything() {
         final Context context = getInstrumentation().getTargetContext();
         this.db = OpenTagViewerDatabase.getInstance(context);
+        this.profiles = new FamilyProfileRepository(this.db);
 
         AccountBeaconsForTests.forgetThemAll();
         this.forgetTheTag();
@@ -125,6 +134,9 @@ public class EveryPathAsksForAFreshSignInTest {
     public void putItAllBack() {
         if (this.scenario != null) {
             this.scenario.close();
+        }
+        if (this.familyProfileId != null) {
+            this.profiles.deleteProfile(this.familyProfileId).blockingAwait();
         }
         Intents.release();
         AppDependencies.reset();
@@ -270,6 +282,27 @@ public class EveryPathAsksForAFreshSignInTest {
         onView(withId(R.id.device_name_input)).inRoot(isDialog())
                 .perform(replaceText("Something Else"));
         onView(withText(R.string.confirm)).inRoot(isDialog()).perform(click());
+
+        this.assertItAsksForAFreshSignIn();
+    }
+
+    /**
+     * <b>Pulling down on Family Overview, another user-initiated account read.</b>
+     *
+     * <p>A refused session cannot be repaired by repeating the gesture, so this path must reach
+     * the same sign-in screen as the iCloud list and rename flows.
+     */
+    @Test
+    public void dpullingFamilyOverviewAsksForAFreshSignIn() {
+        this.seedAnAccountTag();
+        this.familyProfileId = this.profiles.createProfile("Mina").blockingGet().id;
+        this.profiles.assignAirTag(A_TAG, this.familyProfileId).blockingAwait();
+        AppDependencies.replaceAirTagReportRefresh(airTag -> Completable.error(
+                new ICloudException(ICloudFailure.CREDENTIALS_REJECTED, "refused")));
+
+        this.scenario = ActivityScenario.launch(FamilyOverviewActivity.class);
+        Eventually.check(() -> onView(withText(A_NAME)).check(matches(isDisplayed())));
+        onView(withId(R.id.family_refresh)).perform(swipeDown());
 
         this.assertItAsksForAFreshSignIn();
     }

@@ -6,6 +6,7 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -14,6 +15,8 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -22,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.google.android.material.color.MaterialColors;
+import com.google.android.material.button.MaterialButton;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,9 +34,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import dev.wander.android.opentagviewer.R;
 import dev.wander.android.opentagviewer.data.model.BeaconInformation;
+import dev.wander.android.opentagviewer.data.model.BeaconLocationReport;
+import dev.wander.android.opentagviewer.db.room.entity.LocationReport;
 
 /** Fixed-size light and dark renders of the approved Home composition. */
 @RunWith(AndroidJUnit4.class)
@@ -69,11 +76,84 @@ public class FamilyOverviewLayoutTest {
                 holder.itemView.findViewById(R.id.family_row_divider).getVisibility());
     }
 
+    @Test
+    public void anAirTagAvatarShowsItsEmojiAndClearsItForTheFallbackIcon() {
+        final RecyclerView rows = new RecyclerView(this.themedContext(false));
+        rows.setLayoutManager(new LinearLayoutManager(rows.getContext()));
+        final FamilyOverviewAdapter adapter = new FamilyOverviewAdapter(value -> {}, row -> {});
+        adapter.replaceWith(Arrays.asList(
+                this.airTag("mina", "Mina", "Backpack AirTag", "🎒"),
+                this.airTag("mina", "Mina", "Keys AirTag")));
+
+        final RecyclerView.ViewHolder holder = adapter.onCreateViewHolder(
+                rows, adapter.getItemViewType(0));
+        final MaterialButton avatar =
+                holder.itemView.findViewById(R.id.family_row_edit_profile);
+
+        adapter.onBindViewHolder(holder, 0);
+        assertEquals("the AirTag emoji did not reach its Family avatar",
+                "🎒", avatar.getText().toString());
+        assertNull("an icon was drawn over the AirTag emoji", avatar.getIcon());
+
+        adapter.onBindViewHolder(holder, 1);
+        assertEquals("a recycled Family row kept the previous AirTag's emoji",
+                "", avatar.getText().toString());
+        assertNotNull("an AirTag without an emoji rendered an empty avatar", avatar.getIcon());
+    }
+
+    @Test
+    public void freshnessTextAndDotFollowAgeAcrossRecycledRows() {
+        for (final boolean night : new boolean[] {false, true}) {
+            final Context context = this.themedContext(night);
+            final RecyclerView rows = new RecyclerView(context);
+            rows.setLayoutManager(new LinearLayoutManager(context));
+            final FamilyOverviewAdapter adapter =
+                    new FamilyOverviewAdapter(value -> {}, row -> {});
+            final long nowMs = System.currentTimeMillis();
+            adapter.replaceWith(Arrays.asList(
+                    this.airTagAt("Fresh", nowMs - TimeUnit.MINUTES.toMillis(10)),
+                    this.airTagAt("Warning", nowMs - TimeUnit.MINUTES.toMillis(45)),
+                    this.airTagAt("Old", nowMs - TimeUnit.HOURS.toMillis(3))));
+
+            final RecyclerView.ViewHolder holder = adapter.onCreateViewHolder(
+                    rows, adapter.getItemViewType(0));
+            final TextView freshness =
+                    holder.itemView.findViewById(R.id.family_row_freshness);
+            final ImageView dot =
+                    holder.itemView.findViewById(R.id.family_row_status_dot);
+            final int[] attributes = {
+                    com.google.android.material.R.attr.colorPrimary,
+                    com.google.android.material.R.attr.colorTertiary,
+                    com.google.android.material.R.attr.colorError,
+            };
+
+            for (int index = 0; index < attributes.length; index++) {
+                adapter.onBindViewHolder(holder, index);
+                final int expected = MaterialColors.getColor(
+                        holder.itemView, attributes[index]);
+                assertEquals("wrong freshness text colour at row " + index,
+                        expected, freshness.getCurrentTextColor());
+                assertNotNull("status dot lost its tint at row " + index,
+                        dot.getImageTintList());
+                assertEquals("status dot disagrees with freshness text at row " + index,
+                        expected, dot.getImageTintList().getDefaultColor());
+            }
+        }
+    }
+
     private Rendered render(final boolean night, final String name) throws IOException {
         final Context themed = this.themedContext(night);
 
         final View root = LayoutInflater.from(themed)
                 .inflate(R.layout.activity_family_overview, null, false);
+        final View refresh = root.findViewById(R.id.family_refresh);
+        assertNotNull(name + " did not inflate pull-to-refresh", refresh);
+        assertEquals(name + " did not wrap the scrolling content in pull-to-refresh",
+                refresh, root.findViewById(R.id.family_overview_scroll).getParent());
+        assertEquals(name + " rendered the status notice in a healthy preview", GONE,
+                root.findViewById(R.id.family_status_notice).getVisibility());
+        assertEquals(name + " rendered the login action without a disconnected account",
+                GONE, root.findViewById(R.id.family_status_login).getVisibility());
         root.findViewById(R.id.family_loading_state).setVisibility(GONE);
         root.findViewById(R.id.family_empty_state).setVisibility(GONE);
         root.findViewById(R.id.family_rows_card).setVisibility(VISIBLE);
@@ -140,11 +220,15 @@ public class FamilyOverviewLayoutTest {
 
     private FamilyOverviewAdapter previewRows() {
         final FamilyOverviewAdapter adapter = new FamilyOverviewAdapter(value -> {}, row -> {});
+        final long nowMs = System.currentTimeMillis();
         adapter.replaceWith(Arrays.asList(
-                this.airTag("mina", "Mina", "Backpack AirTag"),
-                this.airTag("evan", "Evan", "Bike AirTag"),
+                this.airTagAt("Backpack AirTag", "🎒",
+                        nowMs - TimeUnit.MINUTES.toMillis(10)),
+                this.airTagAt("Bike AirTag", null,
+                        nowMs - TimeUnit.MINUTES.toMillis(45)),
                 FamilyOverviewRow.sectionHeader("Unassigned AirTags"),
-                this.airTag(null, "Unassigned", "Keys AirTag")));
+                this.airTagAt("Keys AirTag", null,
+                        nowMs - TimeUnit.HOURS.toMillis(3))));
         return adapter;
     }
 
@@ -158,6 +242,44 @@ public class FamilyOverviewLayoutTest {
                         .originalName(airTagName)
                         .build(),
                 null,
+                null);
+    }
+
+    private FamilyOverviewRow airTag(
+            final String profileId,
+            final String personName,
+            final String airTagName,
+            final String emoji) {
+        return FamilyOverviewRow.airTag(
+                profileId,
+                personName,
+                BeaconInformation.builder()
+                        .beaconId(airTagName)
+                        .originalName(airTagName)
+                        .originalEmoji(emoji)
+                        .build(),
+                null,
+                null);
+    }
+
+    private FamilyOverviewRow airTagAt(final String airTagName, final long timestamp) {
+        return this.airTagAt(airTagName, null, timestamp);
+    }
+
+    private FamilyOverviewRow airTagAt(
+            final String airTagName, final String emoji, final long timestamp) {
+        return FamilyOverviewRow.airTag(
+                "profile",
+                "Mina",
+                BeaconInformation.builder()
+                        .beaconId(airTagName)
+                        .originalName(airTagName)
+                        .originalEmoji(emoji)
+                        .build(),
+                BeaconLocationReport.builder()
+                        .timestamp(timestamp)
+                        .provenance(LocationReport.PROVENANCE_LOCAL)
+                        .build(),
                 null);
     }
 

@@ -7,6 +7,11 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground">
 
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/family_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
     <androidx.core.widget.NestedScrollView
         android:id="@+id/family_overview_scroll"
         android:layout_width="match_parent"
@@ -65,58 +70,46 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp" />
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/family_status_card"
+            <LinearLayout
+                android:id="@+id/family_status_notice"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="?attr/colorPrimary"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:visibility="gone"
+                tools:visibility="visible">
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/family_status_title"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="92dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:fontFamily="@font/nunito_bold"
+                    android:textColor="?attr/colorOnBackground"
+                    android:textSize="15sp"
+                    tools:text="Saved reports still available" />
 
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                <TextView
+                    android:id="@+id/family_status_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="13sp"
+                    tools:text="Sign in again to fetch new reports." />
 
-                        <TextView
-                            android:id="@+id/family_status_title"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/nunito_bold"
-                            android:text="@string/family_status_title"
-                            android:textColor="?attr/colorOnPrimary"
-                            android:textSize="17sp" />
-
-                        <TextView
-                            android:id="@+id/family_status_message"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:text="@string/family_status_body"
-                            android:textColor="?attr/colorOnPrimary"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
-                        android:layout_marginStart="12dp"
-                        android:alpha="0.9"
-                        android:contentDescription="@null"
-                        android:src="@drawable/opentagviewer_icon_themed" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/family_status_login"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/login"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/family_loading_state"
@@ -201,6 +194,7 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ImageButton
         android:id="@+id/family_navigation_menu"

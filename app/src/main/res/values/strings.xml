@@ -497,12 +497,7 @@ If Apple simply refused the request, waiting and trying again is worth doing fir
     <string name="save">Save</string>
     <string name="family_your_family_at_a_glance">Your family at a glance</string>
     <string name="family_overview_intro">AirTag reports, shown with their age. They are not live child locations.</string>
-    <string name="family_status_title">Honest AirTag evidence</string>
-    <string name="family_status_body">Nearby evidence comes from this phone. Saved reports always show their age.</string>
     <string name="family_loading_saved_reports">Loading saved AirTag reports…</string>
-    <string name="family_updating_saved_reports">Updating saved reports…</string>
-    <string name="family_updating_title">Checking saved reports</string>
-    <string name="family_updating_body">Your cached AirTag rows stay available while Tether checks local data.</string>
     <string name="family_no_airtags_title">No AirTags yet</string>
     <string name="family_no_airtags_body">Add an AirTag from your Apple account or import an AirTag file.</string>
     <string name="family_no_airtag_assigned">No AirTag assigned</string>
@@ -588,4 +583,9 @@ If Apple simply refused the request, waiting and trying again is worth doing fir
     <string name="report_history_tether_event">Tether</string>
     <string name="report_history_event_accessibility">%1$s, %2$s, %3$s. %4$s</string>
     <string name="report_history_action_accessibility">Open full history for %1$s</string>
+    <string name="family_refresh_no_assigned_title">No assigned AirTags</string>
+    <string name="family_refresh_no_assigned_body">Assign an AirTag to a profile, then pull down to update its location.</string>
+    <string name="family_refresh_assigned_success">Updated assigned AirTags.</string>
+    <string name="family_refresh_assigned_failed_title">Couldn’t update every assigned AirTag</string>
+    <string name="family_refresh_assigned_failed_body">Saved reports remain visible. Pull down to try again.</string>
 </resources>

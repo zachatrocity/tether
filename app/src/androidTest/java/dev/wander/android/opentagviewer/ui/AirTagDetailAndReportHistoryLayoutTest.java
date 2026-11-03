@@ -42,6 +42,7 @@ public class AirTagDetailAndReportHistoryLayoutTest {
                 ((TextView) screen.findViewById(R.id.detail_profile_name)).setText("Mina");
                 ((TextView) screen.findViewById(R.id.detail_airtag_name))
                         .setText("Backpack AirTag");
+                screen.findViewById(R.id.detail_network_map_card).setVisibility(View.VISIBLE);
                 this.measure(screen);
             });
             for (final int id : new int[] {
@@ -51,6 +52,8 @@ public class AirTagDetailAndReportHistoryLayoutTest {
                     R.id.detail_check_again,
                     R.id.detail_play_sound,
                     R.id.detail_network_card,
+                    R.id.detail_network_map_card,
+                    R.id.detail_network_map,
                     R.id.detail_full_history,
             }) {
                 assertRealSize(screen, id);
@@ -112,6 +115,7 @@ public class AirTagDetailAndReportHistoryLayoutTest {
                     .setText("Reported 2 hours ago · not current");
             ((TextView) detail.findViewById(R.id.detail_network_place))
                     .setText("Pine Park entrance");
+            detail.findViewById(R.id.detail_network_map_card).setVisibility(View.VISIBLE);
             this.measure(detail);
             this.write(this.draw(detail), "airtag-detail-" + mode + ".png");
 

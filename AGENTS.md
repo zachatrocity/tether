@@ -282,6 +282,7 @@ Skills carry the longer version of a workflow, so this file can stay short:
 | --- | --- |
 | `.claude/skills/add-strings/` | any user-facing string — adding, rewording, removing, checking |
 | `.claude/skills/device-screenshots/` | rendering the UI on the managed device and reading it cheaply |
+| `.claude/skills/impeccable/` | critiquing and refining app interfaces with the native Android design playbooks |
 | `.claude/skills/watch-pr/` | watching a pushed PR's checks through to a verdict, and acting on it |
 | `.claude/skills/watch-gradle-tests/` | watching a backgrounded emulator suite to a verdict, and telling the silent hangs apart |
 | `.claude/skills/investigating-bug-reports/` | reading an issue completely — every comment, every image — before diagnosing or replying |

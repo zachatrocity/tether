@@ -8,14 +8,15 @@ import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.color.MaterialColors;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -106,7 +107,7 @@ public final class FamilyOverviewAdapter
             holder.itemView.setFocusable(false);
             holder.itemView.setContentDescription(null);
             holder.edit.setVisibility(VISIBLE);
-            holder.edit.setImageResource(R.drawable.edit_24px);
+            bindActionIcon(holder.edit, R.drawable.edit_24px);
             holder.edit.setContentDescription(holder.itemView.getContext().getString(
                     R.string.family_edit_profile_content_description, row.getPersonName()));
             holder.edit.setOnClickListener(view -> this.onEditProfile.accept(row));
@@ -125,6 +126,7 @@ public final class FamilyOverviewAdapter
                 : airTag.getName();
         holder.person.setText(primaryLabel);
         holder.airTag.setText(secondaryLabel);
+        bindAirTagAvatar(holder.edit, airTag);
         holder.freshness.setVisibility(VISIBLE);
         holder.evidence.setVisibility(VISIBLE);
         holder.statusDot.setVisibility(VISIBLE);
@@ -132,13 +134,15 @@ public final class FamilyOverviewAdapter
         holder.itemView.setClickable(true);
         holder.itemView.setFocusable(true);
 
+        final long nowMs = System.currentTimeMillis();
         final FamilyOverviewEvidence.State state = FamilyOverviewEvidence.classify(
-                row.getReport(), row.getLastSighting(), System.currentTimeMillis());
-        final String freshness = this.freshness(holder, row, state);
+                row.getReport(), row.getLastSighting(), nowMs);
+        final String freshness = this.freshness(holder, row, state, nowMs);
         final String evidence = this.evidence(holder, row, state);
         holder.freshness.setText(freshness);
         holder.evidence.setText(evidence);
-        this.tintStatus(holder, state);
+        this.tintFreshness(holder, FamilyOverviewEvidence.ageTone(
+                state, row.getReport(), row.getLastSighting(), nowMs));
 
         final String description = holder.itemView.getContext().getString(
                 R.string.family_row_content_description,
@@ -148,21 +152,44 @@ public final class FamilyOverviewAdapter
 
         holder.edit.setVisibility(VISIBLE);
         if (row.getProfileId() == null) {
-            holder.edit.setImageResource(R.drawable.link_24);
             holder.edit.setContentDescription(holder.itemView.getContext().getString(
                     R.string.family_assign_profile_content_description, airTag.getName()));
         } else {
-            holder.edit.setImageResource(R.drawable.edit_24px);
             holder.edit.setContentDescription(holder.itemView.getContext().getString(
                     R.string.family_edit_profile_content_description, row.getPersonName()));
         }
         holder.edit.setOnClickListener(view -> this.onEditProfile.accept(row));
     }
 
+    /**
+     * The AirTag's own emoji is its avatar on every other tag surface, so it wins here too.
+     * The type-specific icon is the fallback for tags whose naming record has no emoji.
+     */
+    private static void bindAirTagAvatar(
+            final MaterialButton avatar, final BeaconInformation airTag) {
+        avatar.setText(null);
+        if (airTag.isEmojiFilled()) {
+            avatar.setIcon(null);
+            avatar.setText(airTag.getEmoji());
+            return;
+        }
+        BeaconIcon.applyTo(avatar, airTag);
+    }
+
+    /** Restore the profile action after a RecyclerView holder previously showed an AirTag. */
+    private static void bindActionIcon(
+            final MaterialButton action, final int iconResource) {
+        action.setText(null);
+        action.setIcon(AppCompatResources.getDrawable(action.getContext(), iconResource));
+        action.setIconTint(ColorStateList.valueOf(MaterialColors.getColor(
+                action, com.google.android.material.R.attr.colorPrimary)));
+    }
+
     private String freshness(
             final RowHolder holder,
             final FamilyOverviewRow row,
-            final FamilyOverviewEvidence.State state) {
+            final FamilyOverviewEvidence.State state,
+            final long nowMs) {
         if (state == FamilyOverviewEvidence.State.NEARBY) {
             return holder.itemView.getContext().getString(R.string.family_nearby_now);
         }
@@ -171,7 +198,7 @@ public final class FamilyOverviewAdapter
             return holder.itemView.getContext().getString(R.string.family_no_report_yet);
         }
         final String age = DateUtils.getRelativeTimeSpanString(
-                report.getTimestamp(), System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+                report.getTimestamp(), nowMs, DateUtils.MINUTE_IN_MILLIS)
                 .toString();
         final boolean local = LocationReport.PROVENANCE_LOCAL.equals(report.getProvenance());
         final String timed = holder.itemView.getContext().getString(
@@ -207,26 +234,32 @@ public final class FamilyOverviewAdapter
         return result;
     }
 
-    private static void tintStatus(
-            final RowHolder holder, final FamilyOverviewEvidence.State state) {
-        final int attribute;
-        switch (state) {
-            case NEARBY:
-                attribute = com.google.android.material.R.attr.colorPrimary;
+    private static void tintFreshness(
+            final RowHolder holder, final FamilyOverviewEvidence.AgeTone tone) {
+        final int statusAttribute;
+        final int textAttribute;
+        switch (tone) {
+            case FRESH:
+                statusAttribute = com.google.android.material.R.attr.colorPrimary;
+                textAttribute = com.google.android.material.R.attr.colorPrimary;
                 break;
-            case CURRENT_REPORT:
-                attribute = com.google.android.material.R.attr.colorSecondary;
+            case WARNING:
+                statusAttribute = com.google.android.material.R.attr.colorTertiary;
+                textAttribute = com.google.android.material.R.attr.colorTertiary;
                 break;
-            case STALE_REPORT:
-                attribute = com.google.android.material.R.attr.colorTertiary;
+            case OLD:
+                statusAttribute = com.google.android.material.R.attr.colorError;
+                textAttribute = com.google.android.material.R.attr.colorError;
                 break;
             case UNKNOWN:
             default:
-                attribute = com.google.android.material.R.attr.colorOutline;
+                statusAttribute = com.google.android.material.R.attr.colorOutline;
+                textAttribute = com.google.android.material.R.attr.colorOnSurface;
                 break;
         }
         holder.statusDot.setImageTintList(ColorStateList.valueOf(MaterialColors.getColor(
-                holder.itemView, attribute)));
+                holder.itemView, statusAttribute)));
+        holder.freshness.setTextColor(MaterialColors.getColor(holder.itemView, textAttribute));
     }
 
     private boolean isFollowedByAirTag(final int position) {
@@ -263,7 +296,7 @@ public final class FamilyOverviewAdapter
         private final TextView evidence;
         private final ImageView statusDot;
         private final ImageView chevron;
-        private final ImageButton edit;
+        private final MaterialButton edit;
         private final View divider;
 
         RowHolder(final View view) {

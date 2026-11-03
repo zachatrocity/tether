@@ -13,6 +13,7 @@ import android.content.ClipboardManager;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.location.Address;
@@ -95,6 +96,12 @@ import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresh;
 import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresher;
 import dev.wander.android.opentagviewer.ui.evidence.AirTagEvidence;
 import dev.wander.android.opentagviewer.ui.family.AssociatedAirTagAdapter;
+import dev.wander.android.opentagviewer.ui.maps.IMapProvider;
+import dev.wander.android.opentagviewer.ui.maps.MapContainer;
+import dev.wander.android.opentagviewer.ui.maps.MapMarker;
+import dev.wander.android.opentagviewer.ui.maps.MapProviderFactory;
+import dev.wander.android.opentagviewer.ui.maps.MarkerPalette;
+import dev.wander.android.opentagviewer.ui.maps.VectorImageGeneratorUtil;
 import dev.wander.android.opentagviewer.util.android.CachedPhoneLocation;
 import dev.wander.android.opentagviewer.util.android.AddressLookup;
 import dev.wander.android.opentagviewer.util.android.FusedPhoneLocation;
@@ -228,6 +235,10 @@ public class DeviceInfoActivity extends AppCompatActivity
     private Disposable checkAgainLookup;
     private long liveDetailSightingAtMs;
     private BeaconLocationReport latestLocalReport;
+    private BeaconLocationReport latestNetworkReport;
+    private IMapProvider detailMapProvider;
+    private boolean detailMapReady;
+    private boolean detailMapResumed;
 
     private boolean hasNameChanges = false;
 
@@ -639,6 +650,7 @@ public class DeviceInfoActivity extends AppCompatActivity
     }
 
     private void showNetworkEvidence(final BeaconLocationReport report) {
+        this.latestNetworkReport = report;
         final TextView age = this.findViewById(R.id.detail_network_age);
         final TextView place = this.findViewById(R.id.detail_network_place);
         final TextView meta = this.findViewById(R.id.detail_network_meta);
@@ -648,6 +660,7 @@ public class DeviceInfoActivity extends AppCompatActivity
             place.setText(R.string.family_no_saved_report);
             meta.setVisibility(GONE);
             caveat.setText(R.string.detail_no_report_caveat);
+            this.hideLatestLocationMap();
             this.updateNetworkAccessibility();
             return;
         }
@@ -673,8 +686,103 @@ public class DeviceInfoActivity extends AppCompatActivity
                         accuracy));
         meta.setVisibility(VISIBLE);
         caveat.setText(R.string.detail_not_live_position);
+        this.showLatestLocationMap();
         this.updateNetworkAccessibility();
         this.resolveNetworkPlace(report);
+    }
+
+    /**
+     * The mini map belongs to the Apple report, not the newer phone position above it. A local
+     * sighting says where this phone was when it heard the AirTag; presenting that as the tag's
+     * latest network location would erase the distinction this screen exists to preserve.
+     */
+    private void showLatestLocationMap() {
+        this.findViewById(R.id.detail_network_map_card).setVisibility(VISIBLE);
+        if (this.detailMapProvider == null) {
+            final String selected = MapProviderFactory.effectiveProvider(
+                    this, this.userSettings.getMapProvider());
+            MapContainer.clear(this, R.id.detail_network_map);
+            this.detailMapProvider = MapProviderFactory.create(selected);
+            this.detailMapProvider.initialize(
+                    this, R.id.detail_network_map, this::onDetailMapReady);
+            return;
+        }
+        if (this.detailMapReady) {
+            this.renderLatestLocationMap();
+        }
+    }
+
+    private void hideLatestLocationMap() {
+        this.findViewById(R.id.detail_network_map_card).setVisibility(GONE);
+        if (this.detailMapReady) {
+            this.detailMapProvider.clearMarkers();
+        }
+    }
+
+    private void onDetailMapReady(final IMapProvider provider) {
+        if (this.isDestroyed()) {
+            provider.onDestroy();
+            return;
+        }
+        this.detailMapProvider = provider;
+        this.detailMapReady = true;
+        provider.setMapStyle(this.preferredMapStyle());
+        provider.setMyLocationButtonEnabled(false);
+        provider.setMyLocationEnabled(false);
+        provider.setRotateGesturesEnabled(false);
+        provider.setCompassEnabled(false);
+        provider.setMapToolbarEnabled(false);
+        final View mapView = provider.getMapView();
+        if (mapView != null) {
+            mapView.setImportantForAccessibility(
+                    View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        }
+        if (this.detailMapResumed) {
+            provider.onResume();
+        }
+        this.renderLatestLocationMap();
+    }
+
+    private void renderLatestLocationMap() {
+        final BeaconLocationReport report = this.latestNetworkReport;
+        if (!this.detailMapReady || report == null) {
+            return;
+        }
+
+        final Bitmap icon;
+        if (this.beaconInformation.isEmojiFilled()) {
+            icon = VectorImageGeneratorUtil.makeMarker(
+                    this.getResources(),
+                    this.beaconInformation.getEmoji(),
+                    MarkerPalette.fill(this));
+        } else {
+            icon = VectorImageGeneratorUtil.makeMarker(
+                    this.getResources(),
+                    BeaconIcon.forBeacon(this.beaconInformation),
+                    MarkerPalette.fill(this),
+                    MarkerPalette.icon(this));
+        }
+
+        this.detailMapProvider.clearMarkers();
+        this.detailMapProvider.addMarker(MapMarker.builder()
+                .id(this.beaconId)
+                .position(report.getLatitude(), report.getLongitude())
+                .title(this.beaconInformation.getName())
+                .icon(icon)
+                .build());
+        this.detailMapProvider.moveCamera(
+                report.getLatitude(),
+                report.getLongitude(),
+                this.detailMapProvider.initialZoom());
+    }
+
+    private IMapProvider.MapStyle preferredMapStyle() {
+        if (this.userSettings == null || this.userSettings.getUseDarkTheme() == null) {
+            return IMapProvider.MapStyle.FOLLOW_SYSTEM;
+        }
+        return this.userSettings.getUseDarkTheme()
+                ? IMapProvider.MapStyle.DARK
+                : IMapProvider.MapStyle.LIGHT;
     }
 
     private void resolveNetworkPlace(final BeaconLocationReport report) {
@@ -1021,6 +1129,13 @@ public class DeviceInfoActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
+        this.detailMapResumed = true;
+        if (this.detailMapProvider != null) {
+            this.detailMapProvider.setMapStyle(this.preferredMapStyle());
+            if (this.detailMapReady) {
+                this.detailMapProvider.onResume();
+            }
+        }
         this.loadAirTagDetailEvidence();
         this.startWatchingForThisTag();
         this.showWhatWasHeardOverBluetooth();
@@ -1029,6 +1144,10 @@ public class DeviceInfoActivity extends AppCompatActivity
 
     @Override
     protected void onPause() {
+        this.detailMapResumed = false;
+        if (this.detailMapReady) {
+            this.detailMapProvider.onPause();
+        }
         super.onPause();
         this.stopWatchingForThisTag();
         if (this.leftBehindLookup != null && !this.leftBehindLookup.isDisposed()) {
@@ -1333,6 +1452,9 @@ public class DeviceInfoActivity extends AppCompatActivity
         // cancellable, which closes the GATT connection rather than leaving it dangling.
         if (this.playSoundNearby != null && !this.playSoundNearby.isDisposed()) {
             this.playSoundNearby.dispose();
+        }
+        if (this.detailMapProvider != null) {
+            this.detailMapProvider.onDestroy();
         }
         super.onDestroy();
     }

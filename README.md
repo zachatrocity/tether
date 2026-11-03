@@ -44,6 +44,10 @@ Tether uses the upstream tag formats and setup procedures. See the [OpenTagViewe
 
 The login screen exposes **Try a remote server** before a failed sign-in. A remote Mac-compatible Anisette helper is optional infrastructure: configure your own endpoint rather than relying on a server embedded in this app. Machine identities matter to Apple sessions, so changing providers may require signing in again.
 
+If Apple stops accepting a saved session, Tether keeps imported AirTags and location history on
+the phone and explains why sign-in is required again. The disconnected-account notice on Family
+Overview includes a **Login** action instead of leaving the user at a dead end.
+
 ### Optional ntfy endpoint
 
 Open **Settings → AirTag notifications** to configure an ntfy server, topic, and optional
@@ -75,12 +79,20 @@ The name and icon express the intended family use. They do not broaden the upstr
 After sign-in, Tether opens the Family Overview instead of the map. It groups AirTags under
 local, user-named family profiles and keeps AirTags without a valid profile in an explicit
 **Unassigned AirTags** section, where each row leads with its unique AirTag name and shows the
-assignment state second. Tap a row for that AirTag's details, or use the row's edit action to
-rename its profile or assign an unassigned AirTag.
+assignment state second. Each row keeps the AirTag's emoji as its avatar, falling back to the
+tag-type icon when no emoji is set. Tap a row for that AirTag's details, or use the avatar action
+to rename its profile or assign an unassigned AirTag.
 
 Each row distinguishes a recent sighting heard by this phone, a current saved report, a stale
-saved report, and no report. The wording always names the evidence source and marks stale data as
-not current; cached rows remain visible while data is loading or an account is disconnected.
+saved report, and no report. Its age is green below 30 minutes, yellow from 30 minutes to two
+hours, and red from two hours onward. The wording still names the evidence source and marks stale
+data as not current; cached rows remain visible while data is loading or an account is
+disconnected. Disconnection and refresh failures appear as a compact notice rather than displacing
+the AirTag list with a persistent dashboard card.
+
+Pull down on Family Overview to request fresh Apple reports for the AirTags currently assigned to
+profiles. Unassigned AirTags are not queried. The list reloads from saved evidence after the
+batch, and a partial failure keeps existing reports visible while naming the problem.
 
 The floating menu on Family Overview and Map links to Family Overview, Map, Report history,
 Add AirTag, and Settings. Family Overview keeps Map as its direct floating action; Report
@@ -95,9 +107,10 @@ data is not synced or shared.
 An AirTag detail page keeps two evidence sources separate. **Nearby now** and the last local
 Bluetooth sighting describe what this Android phone heard, with the phone position when one was
 saved. **Last Apple network report** separately shows its age, place or coordinate fallback,
-source, and horizontal accuracy. Reports over one hour old say **not current**; no saved Apple
-position says **No report yet**. Horizontal accuracy is an uncertainty radius, never a distance
-to the AirTag or a person.
+source, horizontal accuracy, and a mini map centred on that report. The map uses the selected
+provider and the AirTag's emoji or tag-type icon. Reports over one hour old say **not current**;
+no saved Apple position says **No report yet**. Horizontal accuracy is an uncertainty radius,
+never a distance to the AirTag or a person.
 
 From the same page, **Check again** asks Apple for a newer report, **Play sound** uses the existing
 nearby Bluetooth permission flow, and **Full history** opens that AirTag's detailed saved history.

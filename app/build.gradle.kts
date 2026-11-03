@@ -96,8 +96,8 @@ android {
         applicationId = "io.zachs.tether"
         minSdk = 24
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.1.2-tether.3"
+        versionCode = 10
+        versionName = "1.1.2-tether.4"
 
         // Null unless a build type sets it - see the debug block. A release is built from a tag
         // and its versionName is exactly right, so there is nothing a commit would add; the
@@ -519,6 +519,7 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.constraintlayout)
+    implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.lifecycle.livedata.ktx)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.navigation.fragment)

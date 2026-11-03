@@ -94,9 +94,9 @@ public class FakeMapProvider implements IMapProvider {
      *
      * <p><b>The view is added to the container, as the real providers do.</b> Google's replaces
      * that container with a {@code SupportMapFragment}; this puts a {@link FakeMapView} in it.
-     * Both container ids in this app - {@code R.id.map} and {@code R.id.history_map} - are
-     * {@code FrameLayout}s, so there is somewhere to put it. If there is not, nothing is added
-     * and everything else here still works: recording never depended on being on screen.
+     * The map, history and AirTag-detail container ids are {@code FrameLayout}s, so there is
+     * somewhere to put it. If there is not, nothing is added and everything else here still
+     * works: recording never depended on being on screen.
      */
     @Override
     public void initialize(

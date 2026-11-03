@@ -173,6 +173,25 @@
                 android:text="@string/detail_not_live_position"
                 android:textColor="?attr/colorTertiary"
                 android:textSize="13sp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/detail_network_map_card"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:layout_marginTop="12dp"
+                android:importantForAccessibility="noHideDescendants"
+                android:visibility="gone"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                tools:visibility="visible">
+
+                <FrameLayout
+                    android:id="@+id/detail_network_map"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/colorSurfaceContainerHigh" />
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
