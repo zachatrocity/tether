@@ -289,11 +289,12 @@ public class EveryPathAsksForAFreshSignInTest {
     /**
      * <b>Pulling down on Family Overview, another user-initiated account read.</b>
      *
-     * <p>A refused session cannot be repaired by repeating the gesture, so this path must reach
-     * the same sign-in screen as the iCloud list and rename flows.
+     * <p>A refused session cannot be repaired by repeating the gesture. Family Overview keeps
+     * the session and its saved reports until the person explicitly chooses the offered Login
+     * action.
      */
     @Test
-    public void dpullingFamilyOverviewAsksForAFreshSignIn() {
+    public void dpullingFamilyOverviewOffersAFreshSignIn() {
         this.seedAnAccountTag();
         this.familyProfileId = this.profiles.createProfile("Mina").blockingGet().id;
         this.profiles.assignAirTag(A_TAG, this.familyProfileId).blockingAwait();
@@ -304,7 +305,10 @@ public class EveryPathAsksForAFreshSignInTest {
         Eventually.check(() -> onView(withText(A_NAME)).check(matches(isDisplayed())));
         onView(withId(R.id.family_refresh)).perform(swipeDown());
 
-        this.assertItAsksForAFreshSignIn();
+        Eventually.check(() -> onView(withId(R.id.family_status_login))
+                .check(matches(isDisplayed())));
+        onView(withId(R.id.family_status_login)).perform(click());
+        Eventually.check(() -> intended(hasComponent(AppleLoginActivity.class.getName())));
     }
 
     /**

@@ -5,8 +5,10 @@ import static android.view.View.VISIBLE;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.swipeDown;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static org.hamcrest.Matchers.not;
@@ -45,6 +47,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.wander.android.opentagviewer.AppleLoginActivity;
 import dev.wander.android.opentagviewer.DeviceInfoActivity;
@@ -61,10 +64,13 @@ import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
 import dev.wander.android.opentagviewer.db.room.entity.LocationReport;
 import dev.wander.android.opentagviewer.db.room.entity.UserBeaconOptions;
 import dev.wander.android.opentagviewer.python.AppDependencies;
+import dev.wander.android.opentagviewer.python.icloud.ICloudException;
+import dev.wander.android.opentagviewer.python.icloud.ICloudFailure;
 import dev.wander.android.opentagviewer.ui.maps.AMapWithTagsOnIt;
 import dev.wander.android.opentagviewer.util.android.AppCryptographyUtil;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
+import io.reactivex.rxjava3.subjects.CompletableSubject;
 
 /** The signed-in home journey, using saved reports rather than a live Apple response. */
 @LargeTest
@@ -92,6 +98,8 @@ public class FamilyOverviewFlowTest {
         this.profiles = new FamilyProfileRepository(this.database);
         this.createProfile("Mina", 0);
         this.createProfile("Evan", 1);
+        AppDependencies.replaceAppleServiceRestore(
+                (context, settings, userAuth) -> Completable.complete());
 
         Intents.init();
         intending(not(hasComponent(FamilyOverviewActivity.class.getName())))
@@ -186,6 +194,59 @@ public class FamilyOverviewFlowTest {
 
         Eventually.check(() -> assertTrue("the disconnected notice did not open Login",
                 sentIntent(AppleLoginActivity.class, null, null)));
+    }
+
+    @Test
+    public void pullToRefreshWaitsForTheStoredAccountWithoutSigningItOut() {
+        final CompletableSubject accountRestore = CompletableSubject.create();
+        final AtomicInteger refreshCalls = new AtomicInteger();
+        AppDependencies.replaceAppleServiceRestore(
+                (context, settings, userAuth) -> accountRestore);
+        AppDependencies.replaceAirTagReportRefresh(airTag ->
+                Completable.fromAction(refreshCalls::incrementAndGet));
+        this.openHome();
+
+        onView(withId(R.id.family_refresh)).perform(swipeDown());
+
+        Eventually.check(() -> this.scenario.onActivity(activity ->
+                assertTrue("the refresh indicator stopped while account restoration was pending",
+                        ((SwipeRefreshLayout) activity.findViewById(R.id.family_refresh))
+                                .isRefreshing())));
+        assertEquals("a report request ran before the stored account was restored",
+                0, refreshCalls.get());
+        assertTrue("waiting for account restoration deleted the stored session",
+                this.hasStoredAccount());
+
+        accountRestore.onComplete();
+
+        Eventually.check(() -> assertEquals(
+                "the assigned AirTags were not refreshed after account restoration",
+                2, refreshCalls.get()));
+        assertTrue("refreshing deleted the stored session", this.hasStoredAccount());
+    }
+
+    @Test
+    public void refusedCredentialsKeepTheSessionUntilLoginIsChosen() {
+        AppDependencies.replaceAirTagReportRefresh(airTag -> Completable.error(
+                new ICloudException(ICloudFailure.CREDENTIALS_REJECTED, "refused")));
+        this.openHome();
+
+        onView(withId(R.id.family_refresh)).perform(swipeDown());
+
+        Eventually.check(() -> onView(withId(R.id.family_status_login))
+                .check(matches(isDisplayed())));
+        assertTrue("a refused refresh deleted the session before the user chose Login",
+                this.hasStoredAccount());
+        assertFalse("a refused refresh opened Login without the user choosing it",
+                sentIntent(AppleLoginActivity.class, null, null));
+
+        onView(withId(R.id.family_status_login)).perform(click());
+
+        Eventually.check(() -> assertTrue("the Login button did not open Login",
+                sentIntent(AppleLoginActivity.class, null, null)));
+        Eventually.check(() -> assertFalse(
+                "the explicitly replaced session was kept",
+                this.hasStoredAccount()));
     }
 
     @Test
@@ -434,6 +495,15 @@ public class FamilyOverviewFlowTest {
             }
         }
         return false;
+    }
+
+    private boolean hasStoredAccount() {
+        return new UserAuthRepository(
+                UserAuthDataStore.getInstance(getInstrumentation().getTargetContext()),
+                new AppCryptographyUtil())
+                .getUserAuth()
+                .blockingFirst()
+                .isPresent();
     }
 
     private void storeFreshReport(final String beaconId) {

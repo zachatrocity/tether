@@ -1131,3 +1131,13 @@ Otherwise switching modes in the login flow keeps using the cached local machine
 Mac session carries `remote_mac_profile` in its saved anisette mapping; restore it with the
 remote provider and never run `_preferLocalAnisette` on that session. The saved device IDs,
 provider identity and routing must describe the same machine after restart.
+
+## Family Overview owns cold-start Apple session restoration
+
+Family Overview is the signed-in launch surface, so it must restore `PythonAppleService` before
+running a report refresh. Stored `UserAuth` only proves that encrypted account material exists;
+the Python service is a process singleton and is always null after Android starts a new process.
+Treating that initialization state as a logout made every first pull-to-refresh fail and offered a
+Login button that then deleted an otherwise valid session. Restore through
+`AppDependencies.restoreAppleService`, wait for it before fetching reports, and keep session
+deletion behind the explicit Login action.

@@ -21,8 +21,9 @@ import dev.wander.android.opentagviewer.ble.FmdnRingTrigger;
 import dev.wander.android.opentagviewer.ble.RoutingSoundTrigger;
 import dev.wander.android.opentagviewer.python.icloud.ICloudService;
 import dev.wander.android.opentagviewer.python.icloud.PythonICloudService;
-import dev.wander.android.opentagviewer.db.repo.model.UserSettings;
 import dev.wander.android.opentagviewer.db.repo.BeaconRepository;
+import dev.wander.android.opentagviewer.db.repo.UserAuthRepository;
+import dev.wander.android.opentagviewer.db.repo.model.UserSettings;
 import dev.wander.android.opentagviewer.db.room.OpenTagViewerDatabase;
 import dev.wander.android.opentagviewer.service.web.AnisetteServerTesterService;
 import dev.wander.android.opentagviewer.util.android.AddressLookup;
@@ -30,6 +31,7 @@ import dev.wander.android.opentagviewer.util.history.HistoryArchiveImporter;
 import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresh;
 import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresher;
 import dev.wander.android.opentagviewer.util.history.HistoryImporter;
+import io.reactivex.rxjava3.core.Completable;
 
 /**
  * What the sign-in screen depends on, in one place a test can replace.
@@ -69,6 +71,18 @@ public final class AppDependencies {
     public interface AnisetteFactory {
         AnisetteSource create(Context context, UserSettings settings, boolean hasExistingSession);
     }
+
+    /** Restores the process-wide Apple report service from the encrypted stored account. */
+    public interface AppleServiceRestore {
+        Completable restore(
+                Context context,
+                UserSettings settings,
+                UserAuthRepository userAuthRepository);
+    }
+
+    private static AppleServiceRestore appleServiceRestore =
+            AppDependencies::restoreRealAppleService;
+    private static Completable appleServiceRestoreInFlight;
 
     /**
      * How to build the thing that asks an Anisette server whether it is alive.
@@ -257,6 +271,59 @@ public final class AppDependencies {
         serverTesterFactory = engine -> replacement;
     }
 
+    /**
+     * Makes the stored account usable by report-refresh screens in this process.
+     *
+     * <p>The Family Overview replaced Map as the launcher, so Map no longer gets the first chance
+     * to restore {@link PythonAppleService}. A stored account without that process singleton
+     * looks signed in to the database and signed out to every report fetch. Share one in-flight
+     * restore across activity recreation, then retry after a failure rather than caching it for
+     * the life of the process.
+     */
+    public static synchronized Completable restoreAppleService(
+            final Context context,
+            final UserSettings settings,
+            final UserAuthRepository userAuthRepository) {
+        if (PythonAppleService.getInstance() != null) {
+            return Completable.complete();
+        }
+        if (appleServiceRestoreInFlight == null) {
+            appleServiceRestoreInFlight = appleServiceRestore
+                    .restore(context.getApplicationContext(), settings, userAuthRepository)
+                    .doFinally(AppDependencies::clearAppleServiceRestore)
+                    .cache();
+        }
+        return appleServiceRestoreInFlight;
+    }
+
+    private static Completable restoreRealAppleService(
+            final Context context,
+            final UserSettings settings,
+            final UserAuthRepository userAuthRepository) {
+        return userAuthRepository.getUserAuth()
+                .firstOrError()
+                .flatMapCompletable(stored -> {
+                    if (stored.isEmpty()) {
+                        return Completable.complete();
+                    }
+                    return PythonAuthService.restoreAccount(
+                                    stored.get(), anisette(context, settings, true))
+                            .doOnNext(PythonAppleService::setup)
+                            .ignoreElements();
+                });
+    }
+
+    private static synchronized void clearAppleServiceRestore() {
+        appleServiceRestoreInFlight = null;
+    }
+
+    @VisibleForTesting
+    public static synchronized void replaceAppleServiceRestore(
+            final AppleServiceRestore replacement) {
+        appleServiceRestore = replacement;
+        appleServiceRestoreInFlight = null;
+    }
+
     public static AnisetteSource anisette(
             final Context context, final UserSettings settings, final boolean hasExistingSession) {
         return anisetteFactory.create(context, settings, hasExistingSession);
@@ -315,6 +382,8 @@ public final class AppDependencies {
     public static void reset() {
         authService = new PythonAppleAuthService();
         anisetteFactory = EmulatedMacAnisette::new;
+        appleServiceRestore = AppDependencies::restoreRealAppleService;
+        appleServiceRestoreInFlight = null;
         serverTesterFactory = AnisetteServerTesterService::new;
         hardwareDescriber = new ChaquopyHardwareDescriber();
         accessoryMacResolver = new ChaquopyAccessoryMacResolver();

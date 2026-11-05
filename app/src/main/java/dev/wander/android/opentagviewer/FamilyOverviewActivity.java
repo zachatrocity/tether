@@ -54,7 +54,6 @@ import dev.wander.android.opentagviewer.ui.detail.AirTagReportRefresher;
 import dev.wander.android.opentagviewer.ui.family.FamilyOverviewAdapter;
 import dev.wander.android.opentagviewer.ui.family.FamilyOverviewReportRefresh;
 import dev.wander.android.opentagviewer.ui.family.FamilyOverviewRow;
-import dev.wander.android.opentagviewer.ui.login.SignInAgain;
 import dev.wander.android.opentagviewer.ui.navigation.FloatingNavigationMenu;
 import dev.wander.android.opentagviewer.util.TagOrder;
 import dev.wander.android.opentagviewer.util.TagVisibility;
@@ -78,6 +77,8 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
     private FamilyProfileRepository familyRepository;
     private FamilyOverviewReportRefresh reportRefresh;
     private UserAuthRepository userAuthRepository;
+    private UserSettingsRepository userSettingsRepository;
+    private Completable appleServiceReady;
     private AddressLookup geocoder;
     private FamilyProfilesSnapshot latestProfiles;
     private PopupMenu navigationPopup;
@@ -129,6 +130,11 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
         this.userAuthRepository = new UserAuthRepository(
                 UserAuthDataStore.getInstance(this.getApplicationContext()),
                 new AppCryptographyUtil());
+        this.userSettingsRepository = new UserSettingsRepository(
+                UserSettingsDataStore.getInstance(this.getApplicationContext()));
+        final UserSettings settings = this.userSettingsRepository.getUserSettings();
+        this.appleServiceReady = AppDependencies.restoreAppleService(
+                this.getApplicationContext(), settings, this.userAuthRepository);
         this.geocoder = AppDependencies.geocoder(
                 this.getApplicationContext(), Locale.getDefault());
 
@@ -143,6 +149,11 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
         this.refreshLayout = this.findViewById(R.id.family_refresh);
         this.refreshLayout.setOnRefreshListener(this::refreshAssignedAirTags);
         this.statusLoginButton.setOnClickListener(view -> this.openLoginFromNotice());
+        this.disposables.add(this.appleServiceReady.subscribe(
+                () -> Log.i(TAG, "Stored Apple account restoration finished"),
+                error -> Log.w(TAG,
+                        "Could not restore the stored Apple account; saved reports remain",
+                        error)));
 
         this.adapter = new FamilyOverviewAdapter(this::openDetails, this::editProfileFor);
         final RecyclerView rows = this.findViewById(R.id.family_rows);
@@ -183,9 +194,7 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
         this.loadingState.setVisibility(preservingRows ? GONE : VISIBLE);
         this.loadingText.setText(R.string.family_loading_saved_reports);
 
-        final UserSettings settings = new UserSettingsRepository(
-                UserSettingsDataStore.getInstance(this.getApplicationContext()))
-                .getUserSettings();
+        final UserSettings settings = this.userSettingsRepository.getUserSettings();
 
         final Observable<List<BeaconInformation>> beacons = this.beaconRepository.getAllBeacons()
                 .flatMap(BeaconDataParser::parseAsync)
@@ -287,7 +296,8 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
         }
 
         this.assignedRefreshInFlight = true;
-        this.disposables.add(this.reportRefresh.refresh(this.assignedAirTags)
+        this.disposables.add(this.appleServiceReady
+                .andThen(this.reportRefresh.refresh(this.assignedAirTags))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         () -> {
@@ -304,7 +314,7 @@ public final class FamilyOverviewActivity extends AppCompatActivity {
                             this.refreshLayout.setRefreshing(false);
                             Log.w(TAG, "Could not refresh every assigned AirTag", error);
                             if (ICloudFailures.meansSignInAgain(error)) {
-                                this.disposables.add(SignInAgain.from(this));
+                                this.showDisconnectedNotice();
                                 return;
                             }
                             if (error instanceof AirTagReportRefresher.SignedOutException) {
